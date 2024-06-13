@@ -12,7 +12,7 @@
 
 ## How to use
 
-### Rewriting C# Syntax Trees with Fluent Manner
+### Rename existing member method and add statements
 
 ```csharp
 var parsedCode = CSharpSyntaxTree.ParseText("""
@@ -41,6 +41,41 @@ var modifiedCode = FluentCSharpSyntaxRewriter.Define()
             .AddStatements("return 123;");
     })
     .RewriteCSharp(parsedCode);
+
+Console.Out.WriteLine(modifiedCode);
+```
+
+### Replace Identifier Token
+
+```csharp
+var parsedCode = CSharpSyntaxTree.ParseText("""
+/// <summary>
+/// Indicates that a specific value entry should be deleted from the registry.
+/// </summary>
+public sealed class __TypeName__ {
+	private static readonly Lazy<__TypeName__> _instanceOf = new Lazy<__TypeName__>(
+		() => new __TypeName__(),
+		LazyThreadSafetyMode.None);
+	
+	public static __TypeName__ Instance => _instanceOf.Value;
+	
+	internal __TypeName__() :
+		base()
+	{ }
+}
+""").GetRoot();
+
+var modifiedCode = FluentCSharpSyntaxRewriter
+	.Define()
+	.WithVisitToken((_, token) =>
+	{
+		if (token.IsKind(SyntaxKind.IdentifierToken) &&
+			string.Equals(token.ValueText, "__TypeName__", StringComparison.Ordinal))
+			return SyntaxFactory.Identifier("AType").WithTriviaFrom(token);
+		return token;
+	})
+	.Visit(parsedCode)
+	.ToFullStringCSharp();
 
 Console.Out.WriteLine(modifiedCode);
 ```
