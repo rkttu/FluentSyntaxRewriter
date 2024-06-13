@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.34928.147
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FluentSyntaxRewriter", "FluentSyntaxRewriter\FluentSyntaxRewriter.csproj", "{A9DE21DB-FC3C-4B4C-982F-227B31B34F92}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FluentSyntaxRewriter.Test", "FluentSyntaxRewriter.Test\FluentSyntaxRewriter.Test.csproj", "{71551C11-8B74-4500-84AC-6DE3B92449B0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A9DE21DB-FC3C-4B4C-982F-227B31B34F92}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A9DE21DB-FC3C-4B4C-982F-227B31B34F92}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A9DE21DB-FC3C-4B4C-982F-227B31B34F92}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A9DE21DB-FC3C-4B4C-982F-227B31B34F92}.Release|Any CPU.Build.0 = Release|Any CPU
+		{71551C11-8B74-4500-84AC-6DE3B92449B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71551C11-8B74-4500-84AC-6DE3B92449B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71551C11-8B74-4500-84AC-6DE3B92449B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71551C11-8B74-4500-84AC-6DE3B92449B0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A7D42559-F011-4BD0-AEC1-43D15ADBDC4D}
+	EndGlobalSection
+EndGlobal
