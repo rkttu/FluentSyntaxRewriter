@@ -76,5 +76,59 @@ public sealed class __TypeName__ {
 
             Assert.DoesNotContain("__TypeName__", modifiedCode, StringComparison.Ordinal);
         }
+
+        [Fact]
+        public void CombineCodes_RenameMember_ManipulateUsings()
+        {
+            var classCode = SyntaxFactory.ParseMemberDeclaration("""
+/// <summary>
+/// </summary>
+public sealed class __TypeName__ {
+	private static readonly Lazy<__TypeName__> _instanceOf = new Lazy<__TypeName__>(
+		() => new __TypeName__(),
+		LazyThreadSafetyMode.None);
+	
+	public static __TypeName__ Instance => _instanceOf.Value;
+	
+	internal __TypeName__() :
+		base()
+	{ }
+}
+""");
+
+            var modifiedClassCode = FluentCSharpSyntaxRewriter
+                .Define()
+                .WithVisitToken((_, token) =>
+                {
+                    if (token.IsKind(SyntaxKind.IdentifierToken) &&
+                        string.Equals(token.ValueText, "__TypeName__", StringComparison.Ordinal))
+                        return SyntaxFactory.Identifier("AType").WithTriviaFrom(token);
+
+                    return token;
+                })
+                .Visit(classCode)
+                .ParseMemberDeclaration();
+
+            var namespaceCode = CSharpSyntaxTree.ParseText("""
+namespace __ProjectNamespace__ {
+}
+""").GetRoot();
+
+            var modifiedNamespaceCode = FluentCSharpSyntaxRewriter
+                .Define()
+                .WithVisitNamespaceDeclaration((_, ns) =>
+                {
+                    ns = ns.AddUsings("System", "System.Collections.Generic").OrderUsings().DistinctUsings().RenameMember(_ => "TheProject");
+                    ns = ns.AddMembers(modifiedClassCode);
+                    return ns;
+                })
+                .Visit(namespaceCode)
+                .ToFullStringCSharp();
+
+            Assert.Contains("using System;", modifiedNamespaceCode, StringComparison.Ordinal);
+            Assert.Contains("using System.Collections.Generic;", modifiedNamespaceCode, StringComparison.Ordinal);
+            Assert.Contains("TheProject", modifiedNamespaceCode, StringComparison.Ordinal);
+            Assert.Contains("AType", modifiedNamespaceCode, StringComparison.Ordinal);
+        }
     }
 }

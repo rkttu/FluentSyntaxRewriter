@@ -432,5 +432,181 @@ namespace FluentSyntaxRewriter
                 return formattedRoot.ToFullString();
             }
         }
+
+        /// <summary>
+        /// Get the identifier of the name syntax.
+        /// </summary>
+        /// <typeparam name="TNameSyntax">
+        /// The type of the name syntax.
+        /// </typeparam>
+        /// <param name="nameSyntax">
+        /// The name syntax to get the identifier of.
+        /// </param>
+        /// <returns>
+        /// The identifier of the name syntax.
+        /// </returns>
+        public static string GetIdentifier<TNameSyntax>(this TNameSyntax nameSyntax)
+            where TNameSyntax : NameSyntax
+        {
+            switch (nameSyntax)
+            {
+                case IdentifierNameSyntax identifierName:
+                    return identifierName.Identifier.Text;
+
+                case QualifiedNameSyntax qualifiedName:
+                    var left = GetIdentifier(qualifiedName.Left);
+                    var right = GetIdentifier(qualifiedName.Right);
+                    return string.Join(".", new string[] { left, right, });
+
+                default:
+                    return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Get the identifier of the name syntax.
+        /// </summary>
+        /// <typeparam name="TBaseNamespaceDeclarationSyntax">
+        /// The type of the base namespace declaration syntax.
+        /// </typeparam>
+        /// <param name="ns">
+        /// The namespace declaration syntax to add usings to.
+        /// </param>
+        /// <param name="namespacesToAdd">
+        /// The namespaces to add to the namespace declaration.
+        /// </param>
+        /// <returns>
+        /// The namespace declaration syntax with the new usings added.
+        /// </returns>
+        public static TBaseNamespaceDeclarationSyntax AddUsings<TBaseNamespaceDeclarationSyntax>(this TBaseNamespaceDeclarationSyntax ns, params string[] namespacesToAdd)
+            where TBaseNamespaceDeclarationSyntax : BaseNamespaceDeclarationSyntax
+        {
+            if (namespacesToAdd == null || namespacesToAdd.Length < 1)
+                return ns;
+
+            var list = ns.Usings;
+            foreach (var eachNamespace in namespacesToAdd)
+                list = list.Add(SyntaxFactory.UsingDirective(SyntaxFactory.ParseTypeName(eachNamespace)));
+
+            return (TBaseNamespaceDeclarationSyntax)ns.WithUsings(list);
+        }
+
+        /// <summary>
+        /// Get the identifier of the name syntax.
+        /// </summary>
+        /// <typeparam name="TBaseNamespaceDeclarationSyntax">
+        /// The type of the base namespace declaration syntax.
+        /// </typeparam>
+        /// <param name="ns">
+        /// The namespace declaration syntax to remove usings from.
+        /// </param>
+        /// <param name="namespacesToRemove">
+        /// The namespaces to remove from the namespace declaration.
+        /// </param>
+        /// <returns>
+        /// The namespace declaration syntax with the usings removed.
+        /// </returns>
+        public static TBaseNamespaceDeclarationSyntax RemoveUsings<TBaseNamespaceDeclarationSyntax>(this TBaseNamespaceDeclarationSyntax ns, params string[] namespacesToRemove)
+            where TBaseNamespaceDeclarationSyntax : BaseNamespaceDeclarationSyntax
+        {
+            if (namespacesToRemove == null || namespacesToRemove.Length < 1)
+                return ns;
+
+            var newList = new SyntaxList<UsingDirectiveSyntax>();
+
+            foreach (var eachNamespace in ns.Usings)
+            {
+                var text = eachNamespace.Name.GetIdentifier();
+
+                if (namespacesToRemove.Contains(text, StringComparer.Ordinal))
+                    continue;
+
+                newList = newList.Add(SyntaxFactory.UsingDirective(SyntaxFactory.ParseTypeName(text)));
+            }
+
+            return (TBaseNamespaceDeclarationSyntax)ns.WithUsings(newList);
+        }
+
+        /// <summary>
+        /// Get the identifier of the name syntax.
+        /// </summary>
+        /// <typeparam name="TBaseNamespaceDeclarationSyntax">
+        /// The type of the base namespace declaration syntax.
+        /// </typeparam>
+        /// <param name="ns">
+        /// The namespace declaration syntax to distinct usings from.
+        /// </param>
+        /// <returns>
+        /// The namespace declaration syntax with the distinct usings.
+        /// </returns>
+        public static TBaseNamespaceDeclarationSyntax DistinctUsings<TBaseNamespaceDeclarationSyntax>(this TBaseNamespaceDeclarationSyntax ns)
+            where TBaseNamespaceDeclarationSyntax : BaseNamespaceDeclarationSyntax
+        {
+            return (TBaseNamespaceDeclarationSyntax)ns.WithUsings(new SyntaxList<UsingDirectiveSyntax>(
+                Helpers.DistinctBy(ns.Usings, x => x.Name.GetIdentifier(), StringComparer.Ordinal)));
+        }
+
+        /// <summary>
+        /// Order the usings in ascending order.
+        /// </summary>
+        /// <typeparam name="TBaseNamespaceDeclarationSyntax">
+        /// The type of the base namespace declaration syntax.
+        /// </typeparam>
+        /// <param name="ns">
+        /// The namespace declaration syntax to order usings from.
+        /// </param>
+        /// <returns>
+        /// The namespace declaration syntax with the ordered usings.
+        /// </returns>
+        public static TBaseNamespaceDeclarationSyntax OrderUsings<TBaseNamespaceDeclarationSyntax>(this TBaseNamespaceDeclarationSyntax ns)
+            where TBaseNamespaceDeclarationSyntax : BaseNamespaceDeclarationSyntax
+        {
+            return (TBaseNamespaceDeclarationSyntax)ns.WithUsings(new SyntaxList<UsingDirectiveSyntax>(
+                ns.Usings.OrderBy(x => x.Name.GetIdentifier(), StringComparer.Ordinal)));
+        }
+
+        /// <summary>
+        /// Order the usings in descending order.
+        /// </summary>
+        /// <typeparam name="TBaseNamespaceDeclarationSyntax">
+        /// The type of the base namespace declaration syntax.
+        /// </typeparam>
+        /// <param name="ns">
+        /// The namespace declaration syntax to order usings from.
+        /// </param>
+        /// <returns>
+        /// The namespace declaration syntax with the ordered usings.
+        /// </returns>
+        public static TBaseNamespaceDeclarationSyntax OrderUsingsDescending<TBaseNamespaceDeclarationSyntax>(this TBaseNamespaceDeclarationSyntax ns)
+            where TBaseNamespaceDeclarationSyntax : BaseNamespaceDeclarationSyntax
+        {
+            return (TBaseNamespaceDeclarationSyntax)ns.WithUsings(new SyntaxList<UsingDirectiveSyntax>(
+                ns.Usings.OrderByDescending(x => x.Name.GetIdentifier(), StringComparer.Ordinal)));
+        }
+
+        /// <summary>
+        /// Parse a member declaration from the syntax node.
+        /// </summary>
+        /// <typeparam name="TSyntaxNode">
+        /// The type of the syntax node.
+        /// </typeparam>
+        /// <param name="node">
+        /// The syntax node to parse the member declaration from.
+        /// </param>
+        /// <param name="offset">
+        /// The offset to start parsing from.
+        /// </param>
+        /// <param name="options">
+        /// The parse options.
+        /// </param>
+        /// <param name="consumeFullText">
+        /// Whether to consume the full text of the syntax node.
+        /// </param>
+        /// <returns>
+        /// The member declaration parsed from the syntax node.
+        /// </returns>
+        public static MemberDeclarationSyntax ParseMemberDeclaration<TSyntaxNode>(this TSyntaxNode node, int offset = 0, ParseOptions options = default, bool consumeFullText = true)
+            where TSyntaxNode : SyntaxNode
+            => SyntaxFactory.ParseMemberDeclaration(node.ToFullString(), offset, options, consumeFullText);
     }
 }
