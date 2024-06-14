@@ -164,5 +164,48 @@ namespace __ProjectNamespace__ {
             Assert.True(s.TryGetCompilationUnitSyntax(out var syntax));
             Assert.NotNull(syntax);
         }
+
+        [Fact]
+        public void ChainedVisitMethods()
+        {
+            var typeName = "DeleteValueType";
+
+            var template = SyntaxFactory.ParseMemberDeclaration(
+                """
+			public sealed class __TypeName__ {
+				private static readonly Lazy<__TypeName__> _instanceOf = new Lazy<__TypeName__>(
+					() => new __TypeName__(),
+					LazyThreadSafetyMode.None);
+				
+				public static __TypeName__ Instance => _instanceOf.Value;
+				
+				internal __TypeName__() :
+					base()
+				{ }
+			}
+			""");
+
+            var code = FluentCSharpSyntaxRewriter
+                .Define()
+                .WithVisitToken((_, token) =>
+                {
+                    if (token.IsKind(SyntaxKind.IdentifierToken) &&
+                        string.Equals(token.ValueText, "__TypeName__", StringComparison.Ordinal))
+                        return SyntaxFactory.Identifier(typeName).WithTriviaFrom(token);
+
+                    return token;
+                })
+                .WithVisitClassDeclaration((_, token) =>
+                {
+                    token = token.AddXmlDocumentation(
+                        summary: "Indicates that a specific value entry should be deleted from the registry.");
+                    return token;
+                })
+                .Visit(template)
+                .ToFullStringCSharp();
+
+            Assert.Contains("DeleteValueType", code);
+            Assert.Contains($"/// <summary>Indicates that a specific value entry should be deleted from the registry.</summary>{Environment.NewLine}", code, StringComparison.Ordinal);
+        }
     }
 }

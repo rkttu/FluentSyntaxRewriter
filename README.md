@@ -134,6 +134,48 @@ var unit2 = await s.GetCompilationUnitSyntaxAsync();
 var result = s.TryGetCompilationUnitSyntax(out var unit3);
 ```
 
+### Chained method calls
+
+```csharp
+var typeName = "DeleteValueType";
+
+var template = SyntaxFactory.ParseMemberDeclaration(
+	"""
+	public sealed class __TypeName__ {
+		private static readonly Lazy<__TypeName__> _instanceOf = new Lazy<__TypeName__>(
+			() => new __TypeName__(),
+			LazyThreadSafetyMode.None);
+				
+		public static __TypeName__ Instance => _instanceOf.Value;
+				
+		internal __TypeName__() :
+			base()
+		{ }
+	}
+	""");
+
+var code = FluentCSharpSyntaxRewriter
+	.Define()
+	.WithVisitToken((_, token) =>
+	{
+		if (token.IsKind(SyntaxKind.IdentifierToken) &&
+			string.Equals(token.ValueText, "__TypeName__", StringComparison.Ordinal))
+			return SyntaxFactory.Identifier(typeName).WithTriviaFrom(token);
+
+		return token;
+	})
+	.WithVisitClassDeclaration((_, token) =>
+	{
+		token = FluentSyntaxRewriter.CSharpSyntaxTreeExtension.AddXmlDocumentation(token,
+			summary: "Indicates that a specific value entry should be deleted from the registry.");
+		return token;
+	})
+	.Visit(template)
+	.ToFullStringCSharp();
+
+Console.Out.WriteLine(code);
+```
+
 ## License
 
 This library follows Apache-2.0 license. See [LICENSE](./LICENSE) file for more information.

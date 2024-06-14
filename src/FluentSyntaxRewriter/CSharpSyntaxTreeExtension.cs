@@ -53,7 +53,7 @@ namespace FluentSyntaxRewriter
         /// <returns>
         /// The method with the new statements added.
         /// </returns>
-        public static SyntaxNode AddStatements(this MethodDeclarationSyntax methodNode, params string[] statements)
+        public static MethodDeclarationSyntax AddStatements(this MethodDeclarationSyntax methodNode, params string[] statements)
         {
             var body = methodNode.Body;
             if (body != null)
@@ -76,7 +76,7 @@ namespace FluentSyntaxRewriter
         /// <returns>
         /// The property with the new statements added.
         /// </returns>
-        public static SyntaxNode AddStatements(this PropertyDeclarationSyntax propertyNode, params string[] statements)
+        public static PropertyDeclarationSyntax AddStatements(this PropertyDeclarationSyntax propertyNode, params string[] statements)
         {
             var accessors = propertyNode.AccessorList.Accessors;
             if (accessors != null)
@@ -107,7 +107,7 @@ namespace FluentSyntaxRewriter
         /// <returns>
         /// The event with the new statements added.
         /// </returns>
-        public static SyntaxNode AddStatements(this EventDeclarationSyntax eventNode, params string[] statements)
+        public static EventDeclarationSyntax AddStatements(this EventDeclarationSyntax eventNode, params string[] statements)
         {
             var accessors = eventNode.AccessorList.Accessors;
             if (accessors != null)
