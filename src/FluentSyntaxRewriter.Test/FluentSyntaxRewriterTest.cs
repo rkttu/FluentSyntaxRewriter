@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace FluentSyntaxRewriter.Test
 {
@@ -129,6 +130,39 @@ namespace __ProjectNamespace__ {
             Assert.Contains("using System.Collections.Generic;", modifiedNamespaceCode, StringComparison.Ordinal);
             Assert.Contains("TheProject", modifiedNamespaceCode, StringComparison.Ordinal);
             Assert.Contains("AType", modifiedNamespaceCode, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void AddXmlDocTest()
+        {
+            var field = SyntaxFactory.ParseMemberDeclaration(
+                """
+			    static int z = 0;
+			    """);
+
+            var code = field.AddXmlDocumentation(summary: "Test")
+                .ToFullStringCSharp();
+
+            Assert.Contains("/// <summary>Test</summary>", code, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public async Task GetCompilationUnitTest()
+        {
+            var s = CSharpSyntaxTree.ParseText(
+                """
+                namespace A
+                {
+                    public class B
+                    {
+                    }
+                }
+                """);
+
+            Assert.NotNull(s.GetCompilationUnitRoot());
+            Assert.NotNull(await s.GetCompilationUnitSyntaxAsync());
+            Assert.True(s.TryGetCompilationUnitSyntax(out var syntax));
+            Assert.NotNull(syntax);
         }
     }
 }

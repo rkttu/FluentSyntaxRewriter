@@ -5,6 +5,8 @@ using Microsoft.CodeAnalysis.Formatting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace FluentSyntaxRewriter
 {
@@ -608,5 +610,130 @@ namespace FluentSyntaxRewriter
         public static MemberDeclarationSyntax ParseMemberDeclaration<TSyntaxNode>(this TSyntaxNode node, int offset = 0, ParseOptions options = default, bool consumeFullText = true)
             where TSyntaxNode : SyntaxNode
             => SyntaxFactory.ParseMemberDeclaration(node.ToFullString(), offset, options, consumeFullText);
+
+        /// <summary>
+        /// Add XML documentation to the member declaration.
+        /// </summary>
+        /// <typeparam name="TMemberDeclarationSyntax">
+        /// The type of the member declaration.
+        /// </typeparam>
+        /// <param name="member">
+        /// The member declaration to add the XML documentation to.
+        /// </param>
+        /// <param name="summary">
+        /// The summary of the XML documentation.
+        /// </param>
+        /// <param name="remarks">
+        /// The remarks of the XML documentation.
+        /// </param>
+        /// <param name="returns">
+        /// The returns of the XML documentation.
+        /// </param>
+        /// <param name="parameters">
+        /// The parameters of the XML documentation.
+        /// </param>
+        /// <returns>
+        /// The member declaration with the XML documentation added.
+        /// </returns>
+        public static TMemberDeclarationSyntax AddXmlDocumentation<TMemberDeclarationSyntax>(this TMemberDeclarationSyntax member,
+            string summary = default, string remarks = default, string returns = default,
+            IReadOnlyDictionary<string, string> parameters = default)
+            where TMemberDeclarationSyntax : MemberDeclarationSyntax
+        {
+            var list = new List<XmlNodeSyntax>();
+
+            if (summary != null)
+                list.Add(SyntaxFactory.XmlSummaryElement(SyntaxFactory.XmlText(summary)));
+
+            if (remarks != null)
+                list.Add(SyntaxFactory.XmlRemarksElement(SyntaxFactory.XmlText(remarks)));
+
+            if (parameters != null && parameters.Count > 0)
+            {
+                foreach (var eachParameter in parameters)
+                    list.Add(SyntaxFactory.XmlParamElement(eachParameter.Key, SyntaxFactory.XmlText(eachParameter.Value)));
+            }
+
+            if (returns != null)
+                list.Add(SyntaxFactory.XmlReturnsElement(SyntaxFactory.XmlText(returns)));
+
+            if (list.Count < 1)
+                return member;
+
+            var trivia = SyntaxFactory.Trivia(SyntaxFactory.DocumentationComment(list.ToArray()));
+            var leadingTrivia = member.GetLeadingTrivia().AddRange(new SyntaxTrivia[] { trivia, SyntaxFactory.Whitespace(Environment.NewLine), });
+            return member.WithLeadingTrivia(leadingTrivia);
+        }
+
+        /// <summary>
+        /// Get the compilation unit syntax from the syntax tree.
+        /// </summary>
+        /// <typeparam name="TSyntaxTree">
+        /// The type of the syntax tree.
+        /// </typeparam>
+        /// <param name="syntaxTree">
+        /// The syntax tree to get the compilation unit syntax from.
+        /// </param>
+        /// <param name="cancellationToken">
+        /// The cancellation token.
+        /// </param>
+        /// <returns>
+        /// The compilation unit syntax from the syntax tree.
+        /// </returns>
+        public static CompilationUnitSyntax GetCompilationUnitSyntax<TSyntaxTree>(this TSyntaxTree syntaxTree,
+            CancellationToken cancellationToken = default)
+            where TSyntaxTree : SyntaxTree
+            => syntaxTree?.GetRoot(cancellationToken) as CompilationUnitSyntax;
+
+        /// <summary>
+        /// Get the compilation unit syntax from the syntax tree asynchronously.
+        /// </summary>
+        /// <typeparam name="TSyntaxTree">
+        /// The type of the syntax tree.
+        /// </typeparam>
+        /// <param name="syntaxTree">
+        /// The syntax tree to get the compilation unit syntax from.
+        /// </param>
+        /// <param name="cancellationToken">
+        /// The cancellation token.
+        /// </param>
+        /// <returns>
+        /// The compilation unit syntax from the syntax tree.
+        /// </returns>
+        public static async Task<CompilationUnitSyntax> GetCompilationUnitSyntaxAsync<TSyntaxTree>(this TSyntaxTree syntaxTree,
+            CancellationToken cancellationToken = default)
+            where TSyntaxTree : SyntaxTree
+            => (syntaxTree != null) ? await syntaxTree.GetRootAsync(cancellationToken).ConfigureAwait(false) as CompilationUnitSyntax : null;
+
+        /// <summary>
+        /// Try to get the compilation unit syntax from the syntax tree.
+        /// </summary>
+        /// <typeparam name="TSyntaxTree">
+        /// The type of the syntax tree.
+        /// </typeparam>
+        /// <param name="syntaxTree">
+        /// The syntax tree to get the compilation unit syntax from.
+        /// </param>
+        /// <param name="compilationUnitSyntax">
+        /// The compilation unit syntax from the syntax tree.
+        /// </param>
+        /// <returns>
+        /// Whether the compilation unit syntax was successfully retrieved.
+        /// </returns>
+        public static bool TryGetCompilationUnitSyntax<TSyntaxTree>(this TSyntaxTree syntaxTree,
+            out CompilationUnitSyntax compilationUnitSyntax)
+            where TSyntaxTree : SyntaxTree
+        {
+            if (syntaxTree == null || !syntaxTree.TryGetRoot(out SyntaxNode root) || root == null)
+            {
+                compilationUnitSyntax = null;
+                return false;
+            }
+            else
+            {
+                compilationUnitSyntax = root as CompilationUnitSyntax;
+                return (compilationUnitSyntax != null);
+            }
+        }
     }
 }
