@@ -2,7 +2,7 @@
 
 [![NuGet Version](https://img.shields.io/nuget/v/FluentSyntaxRewriter)](https://www.nuget.org/packages/FluentSyntaxRewriter/) ![Build Status](https://github.com/rkttu/FluentSyntaxRewriter/actions/workflows/dotnet.yml/badge.svg) [![GitHub Sponsors](https://img.shields.io/github/sponsors/rkttu)](https://github.com/sponsors/rkttu/)
 
-.NET-based ADMX/ADML parser library and programmatic Windows policy setting/management framework
+A library to help you use the Roslyn APIs for analysing and rewriting the .NET programming language in a fluent way.
 
 ## Minimum Requirements
 
@@ -77,6 +77,61 @@ var modifiedCode = FluentCSharpSyntaxRewriter
 	.ToFullStringCSharp();
 
 Console.Out.WriteLine(modifiedCode);
+```
+
+### Add Using References, Rename Member
+
+```csharp
+var namespaceCode = CSharpSyntaxTree.ParseText(
+	"""
+	namespace __ProjectNamespace__ {
+	}
+	""").GetRoot();
+
+var modifiedNamespaceCode = FluentCSharpSyntaxRewriter
+	.Define()
+	.WithVisitNamespaceDeclaration((_, ns) =>
+	{
+	    ns = ns.AddUsings("System", "System.Collections.Generic").OrderUsings().DistinctUsings().RenameMember(_ => "TheProject");
+	    ns = ns.AddMembers(modifiedClassCode);
+	    return ns;
+	})
+	.Visit(namespaceCode)
+	.ToFullStringCSharp();
+
+Console.Out.WriteLine(modifiedNamespaceCode);
+```
+
+### Add XML Documentation to Member
+
+```csharp
+var field = SyntaxFactory.ParseMemberDeclaration(
+	"""
+	static int z = 0;
+	""");
+
+var code = field.AddXmlDocumentation(summary: "Test")
+.ToFullStringCSharp();
+
+Console.Out.WriteLine(code);
+```
+
+### Get Compilation Unit
+
+```csharp
+var s = CSharpSyntaxTree.ParseText(
+	"""
+	namespace A
+	{
+	    public class B
+	    {
+	    }
+	}
+	""");
+
+var unit1 = s.GetCompilationUnitRoot();
+var unit2 = await s.GetCompilationUnitSyntaxAsync();
+var result = s.TryGetCompilationUnitSyntax(out var unit3);
 ```
 
 ## License
