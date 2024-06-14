@@ -7,7 +7,6 @@
 ## Minimum Requirements
 
 - Requires a platform with .NET Standard 2.0 or later, and Windows Vista+, Windows Server 2008+
-  - This library does not support ADM files.
   - Supported .NET Version: .NET Core 2.0+, .NET 5+, .NET Framework 4.6.1+, Mono 5.4+, UWP 10.0.16299+, Unity 2018.1+
 
 ## How to use
