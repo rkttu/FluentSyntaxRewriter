@@ -660,9 +660,11 @@ namespace FluentSyntaxRewriter
             if (list.Count < 1)
                 return member;
 
-            var trivia = SyntaxFactory.Trivia(SyntaxFactory.DocumentationComment(list.ToArray()));
-            var leadingTrivia = member.GetLeadingTrivia().AddRange(new SyntaxTrivia[] { trivia, SyntaxFactory.Whitespace(Environment.NewLine), });
-            return member.WithLeadingTrivia(leadingTrivia);
+            return member.WithLeadingTrivia(member.GetLeadingTrivia().AddRange(new SyntaxTrivia[]
+            {
+                SyntaxFactory.Trivia(SyntaxFactory.DocumentationComment(list.ToArray())),
+                SyntaxFactory.ElasticLineFeed,
+            }));
         }
 
         /// <summary>

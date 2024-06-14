@@ -143,7 +143,7 @@ namespace __ProjectNamespace__ {
             var code = field.AddXmlDocumentation(summary: "Test")
                 .ToFullStringCSharp();
 
-            Assert.Contains("/// <summary>Test</summary>", code, StringComparison.Ordinal);
+            Assert.Contains($"/// <summary>Test</summary>{Environment.NewLine}", code, StringComparison.Ordinal);
         }
 
         [Fact]
