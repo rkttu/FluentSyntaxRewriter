@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
+using System.Xml.Linq;
 
 namespace FluentSyntaxRewriter
 {
@@ -3071,6 +3072,8 @@ namespace FluentSyntaxRewriter
         /// <returns>The visited syntax node, possibly modified.</returns>
         public override SyntaxNode DefaultVisit(SyntaxNode node)
         {
+            if (node == null)
+                return null;
             if (_defaultVisit != null)
                 node = _defaultVisit.Invoke(this, node);
             return base.DefaultVisit(node);
@@ -3147,7 +3150,7 @@ namespace FluentSyntaxRewriter
         public override TNode VisitListElement<TNode>(TNode node)
         {
             if (_visitListElementNode != null)
-                return (TNode)_visitListElementNode.Invoke(this, node);
+                node = (TNode)_visitListElementNode.Invoke(this, node);
             return base.VisitListElement(node);
         }
 
@@ -3160,7 +3163,7 @@ namespace FluentSyntaxRewriter
         public override SeparatedSyntaxList<TNode> VisitList<TNode>(SeparatedSyntaxList<TNode> list)
         {
             if (_visitListSeparatedList != null)
-                return (SeparatedSyntaxList<TNode>)_visitListSeparatedList.Invoke(this, list);
+                list = (SeparatedSyntaxList<TNode>)_visitListSeparatedList.Invoke(this, list);
             return base.VisitList(list);
         }
 
@@ -3173,7 +3176,7 @@ namespace FluentSyntaxRewriter
         public override SyntaxList<TNode> VisitList<TNode>(SyntaxList<TNode> list)
         {
             if (_visitListNode != null)
-                return (SyntaxList<TNode>)_visitListNode.Invoke(this, list);
+                list = (SyntaxList<TNode>)_visitListNode.Invoke(this, list);
             return base.VisitList(list);
         }
 
