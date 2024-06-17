@@ -176,6 +176,34 @@ var code = FluentCSharpSyntaxRewriter
 Console.Out.WriteLine(code);
 ```
 
+### Replace Placeholder Comments
+
+```csharp
+bool machineOrUser = true;
+
+var codeTemplate = (MethodDeclarationSyntax?)SyntaxFactory.ParseMemberDeclaration(
+    """
+    public IReadOnlyDictionary<string, object> LookupPolicy(RegistryValueOptions registryValueOptions = default, RegistryView registryView = default) {
+        /* REPLACE: Update */
+        var f = "true";
+        /* REPLACE: Update2 */
+        return default;
+    }
+    """);
+
+codeTemplate = codeTemplate.RenameMember(_ => machineOrUser ? "LookupPolicyForMachine" : "LookupPolicyForUser");
+
+var result = codeTemplate.ReplacePlaceholders(
+    new Dictionary<string, Func<string>>
+    {
+        { "Update", () => $"string a = \"{!machineOrUser}\";" },
+        { "Update2", () => $"string b = \"{machineOrUser}\";" },
+    })
+    .ToFullStringCSharp();
+
+Console.Out.WriteLine(result);
+```
+
 ## License
 
 This library follows Apache-2.0 license. See [LICENSE](./LICENSE) file for more information.

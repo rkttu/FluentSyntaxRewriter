@@ -2,9 +2,11 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Formatting;
+using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -736,6 +738,67 @@ namespace FluentSyntaxRewriter
                 compilationUnitSyntax = root as CompilationUnitSyntax;
                 return (compilationUnitSyntax != null);
             }
+        }
+
+        /// <summary>
+        /// Replace placeholders in the syntax node with the specified maps.
+        /// </summary>
+        /// <typeparam name="TSyntaxNode">
+        /// The type of the syntax node.
+        /// </typeparam>
+        /// <param name="targetNode">
+        /// The syntax node to replace the placeholders in.
+        /// </param>
+        /// <param name="maps">
+        /// The maps to replace the placeholders with.
+        /// </param>
+        /// <param name="prefix">
+        /// The prefix of the placeholders. Default string is "REPLACE:".
+        /// </param>
+        /// <returns>
+        /// The syntax node with the placeholders replaced.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when the <paramref name="targetNode"/> is null.
+        /// </exception>
+        public static CompilationUnitSyntax ReplacePlaceholders<TSyntaxNode>(this TSyntaxNode targetNode, Dictionary<string, Func<string>> maps, string prefix = default)
+            where TSyntaxNode : SyntaxNode
+        {
+            if (targetNode == null)
+                throw new ArgumentNullException(nameof(targetNode));
+
+            if (maps == null || maps.Count < 1)
+                return CSharpSyntaxTree.ParseText(targetNode.ToFullString()).GetCompilationUnitRoot();
+
+            if (string.IsNullOrWhiteSpace(prefix))
+                prefix = "REPLACE:";
+
+            var trimmingCharacters = new char[] { '/', '*', ' ', '\t', };
+            var spanList = new Dictionary<TextSpan, string>(maps.Count);
+
+            var sourceCode = FluentCSharpSyntaxRewriter.Define(true)
+                .WithVisitTrivia((_, x) =>
+                {
+                    var key = x.ToString().Trim(trimmingCharacters).Replace(prefix, string.Empty).Trim();
+                    if (maps.ContainsKey(key))
+                        spanList.Add(x.Span, maps[key].Invoke());
+                    return x;
+                })
+                .Visit(targetNode)
+                .ToFullString();
+
+            var buffer = new StringBuilder();
+            var lastIndex = 0;
+
+            foreach (var eachSpan in spanList)
+            {
+                buffer.Append(sourceCode.Substring(lastIndex, eachSpan.Key.Start - lastIndex));
+                buffer.Append(eachSpan.Value);
+                lastIndex = eachSpan.Key.End;
+            }
+            buffer.Append(sourceCode.Substring(lastIndex));
+
+            return CSharpSyntaxTree.ParseText(buffer.ToString()).GetCompilationUnitRoot();
         }
     }
 }

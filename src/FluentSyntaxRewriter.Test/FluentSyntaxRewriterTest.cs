@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using NuGet.Frameworks;
 
 namespace FluentSyntaxRewriter.Test
 {
@@ -206,6 +207,36 @@ namespace __ProjectNamespace__ {
 
             Assert.Contains("DeleteValueType", code);
             Assert.Contains($"/// <summary>Indicates that a specific value entry should be deleted from the registry.</summary>{Environment.NewLine}", code, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void PlaceholderReplaceTest()
+        {
+            bool machineOrUser = true;
+
+            var codeTemplate = (MethodDeclarationSyntax?)SyntaxFactory.ParseMemberDeclaration(
+                """
+                public IReadOnlyDictionary<string, object> LookupPolicy(RegistryValueOptions registryValueOptions = default, RegistryView registryView = default) {
+                    /* REPLACE: Update */
+                    var f = "true";
+                    /* REPLACE: Update2 */
+                    return default;
+                }
+                """);
+
+            codeTemplate = codeTemplate.RenameMember(_ => machineOrUser ? "LookupPolicyForMachine" : "LookupPolicyForUser");
+
+            var result = codeTemplate.ReplacePlaceholders(
+                new Dictionary<string, Func<string>>
+                {
+                    { "Update", () => $"string a = \"{!machineOrUser}\";" },
+                    { "Update2", () => $"string b = \"{machineOrUser}\";" },
+                })
+                .ToFullStringCSharp();
+
+            Assert.Contains("LookupPolicyForMachine", result, StringComparison.Ordinal);
+            Assert.Contains($"string a = \"{!machineOrUser}\";", result, StringComparison.Ordinal);
+            Assert.Contains($"string b = \"{machineOrUser}\";", result, StringComparison.Ordinal);
         }
     }
 }
