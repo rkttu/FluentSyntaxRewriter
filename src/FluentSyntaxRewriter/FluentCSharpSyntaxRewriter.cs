@@ -2,7 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
-using System.Xml.Linq;
+using System.Collections.Concurrent;
 
 namespace FluentSyntaxRewriter
 {
@@ -32,258 +32,259 @@ namespace FluentSyntaxRewriter
         public FluentCSharpSyntaxRewriter(bool visitIntoStructuredTrivia = false)
             : base(visitIntoStructuredTrivia) { }
 
+        private readonly ConcurrentDictionary<Type, Delegate> _visitListElementNode = new ConcurrentDictionary<Type, Delegate>();
+        private readonly ConcurrentDictionary<Type, Delegate> _visitListSeparatedList = new ConcurrentDictionary<Type, Delegate>();
+        private readonly ConcurrentDictionary<Type, Delegate> _visitListNode = new ConcurrentDictionary<Type, Delegate>();
+
         private Func<CSharpSyntaxRewriter, SyntaxNode, SyntaxNode> _defaultVisit = default;
         private Func<CSharpSyntaxRewriter, SyntaxNode, SyntaxNode> _visit = default;
         private Func<CSharpSyntaxRewriter, SyntaxTokenList, SyntaxTokenList> _visitTokenList = default;
         private Func<CSharpSyntaxRewriter, SyntaxTriviaList, SyntaxTriviaList> _visitTriviaList = default;
         private Func<CSharpSyntaxRewriter, SyntaxTrivia, SyntaxTrivia> _visitListElement = default;
         private Func<CSharpSyntaxRewriter, SyntaxToken, SyntaxToken> _visitListSeparator = default;
-        private Func<CSharpSyntaxRewriter, SyntaxNode, SyntaxNode> _visitListElementNode = default;
-        private Func<CSharpSyntaxRewriter, SeparatedSyntaxList<SyntaxNode>, SeparatedSyntaxList<SyntaxNode>> _visitListSeparatedList = default;
-        private Func<CSharpSyntaxRewriter, SyntaxList<SyntaxNode>, SyntaxList<SyntaxNode>> _visitListNode = default;
         private Func<CSharpSyntaxRewriter, SyntaxToken, SyntaxToken> _visitToken = default;
         private Func<CSharpSyntaxRewriter, SyntaxTrivia, SyntaxTrivia> _visitTrivia = default;
-        private Func<CSharpSyntaxRewriter, IdentifierNameSyntax, IdentifierNameSyntax> _visitIdentifierName = default;
-        private Func<CSharpSyntaxRewriter, QualifiedNameSyntax, QualifiedNameSyntax> _visitQualifiedName = default;
-        private Func<CSharpSyntaxRewriter, GenericNameSyntax, GenericNameSyntax> _visitGenericName = default;
-        private Func<CSharpSyntaxRewriter, TypeArgumentListSyntax, TypeArgumentListSyntax> _visitTypeArgumentList = default;
-        private Func<CSharpSyntaxRewriter, AliasQualifiedNameSyntax, AliasQualifiedNameSyntax> _visitAliasQualifiedName = default;
-        private Func<CSharpSyntaxRewriter, PredefinedTypeSyntax, PredefinedTypeSyntax> _visitPredefinedType = default;
-        private Func<CSharpSyntaxRewriter, ArrayTypeSyntax, ArrayTypeSyntax> _visitArrayType = default;
-        private Func<CSharpSyntaxRewriter, ArrayRankSpecifierSyntax, ArrayRankSpecifierSyntax> _visitArrayRankSpecifier = default;
-        private Func<CSharpSyntaxRewriter, PointerTypeSyntax, PointerTypeSyntax> _visitPointerType = default;
-        private Func<CSharpSyntaxRewriter, FunctionPointerTypeSyntax, FunctionPointerTypeSyntax> _visitFunctionPointerType = default;
-        private Func<CSharpSyntaxRewriter, FunctionPointerParameterListSyntax, FunctionPointerParameterListSyntax> _visitFunctionPointerParameterList = default;
-        private Func<CSharpSyntaxRewriter, FunctionPointerCallingConventionSyntax, FunctionPointerCallingConventionSyntax> _visitFunctionPointerCallingConvention = default;
-        private Func<CSharpSyntaxRewriter, FunctionPointerUnmanagedCallingConventionListSyntax, FunctionPointerUnmanagedCallingConventionListSyntax> _visitFunctionPointerUnmanagedCallingConventionList = default;
-        private Func<CSharpSyntaxRewriter, FunctionPointerUnmanagedCallingConventionSyntax, FunctionPointerUnmanagedCallingConventionSyntax> _visitFunctionPointerUnmanagedCallingConvention = default;
-        private Func<CSharpSyntaxRewriter, NullableTypeSyntax, NullableTypeSyntax> _visitNullableType = default;
-        private Func<CSharpSyntaxRewriter, TupleTypeSyntax, TupleTypeSyntax> _visitTupleType = default;
-        private Func<CSharpSyntaxRewriter, TupleElementSyntax, TupleElementSyntax> _visitTupleElement = default;
-        private Func<CSharpSyntaxRewriter, OmittedTypeArgumentSyntax, OmittedTypeArgumentSyntax> _visitOmittedTypeArgument = default;
-        private Func<CSharpSyntaxRewriter, RefTypeSyntax, RefTypeSyntax> _visitRefType = default;
-        private Func<CSharpSyntaxRewriter, ScopedTypeSyntax, ScopedTypeSyntax> _visitScopedType = default;
-        private Func<CSharpSyntaxRewriter, ParenthesizedExpressionSyntax, ParenthesizedExpressionSyntax> _visitParenthesizedExpression = default;
-        private Func<CSharpSyntaxRewriter, TupleExpressionSyntax, TupleExpressionSyntax> _visitTupleExpression = default;
-        private Func<CSharpSyntaxRewriter, PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax> _visitPrefixUnaryExpression = default;
-        private Func<CSharpSyntaxRewriter, AwaitExpressionSyntax, AwaitExpressionSyntax> _visitAwaitExpression = default;
-        private Func<CSharpSyntaxRewriter, PostfixUnaryExpressionSyntax, PostfixUnaryExpressionSyntax> _visitPostfixUnaryExpression = default;
-        private Func<CSharpSyntaxRewriter, MemberAccessExpressionSyntax, MemberAccessExpressionSyntax> _visitMemberAccessExpression = default;
-        private Func<CSharpSyntaxRewriter, ConditionalAccessExpressionSyntax, ConditionalAccessExpressionSyntax> _visitConditionalAccessExpression = default;
-        private Func<CSharpSyntaxRewriter, MemberBindingExpressionSyntax, MemberBindingExpressionSyntax> _visitMemberBindingExpression = default;
-        private Func<CSharpSyntaxRewriter, ElementBindingExpressionSyntax, ElementBindingExpressionSyntax> _visitElementBindingExpression = default;
-        private Func<CSharpSyntaxRewriter, RangeExpressionSyntax, RangeExpressionSyntax> _visitRangeExpression = default;
-        private Func<CSharpSyntaxRewriter, ImplicitElementAccessSyntax, ImplicitElementAccessSyntax> _visitImplicitElementAccess = default;
-        private Func<CSharpSyntaxRewriter, BinaryExpressionSyntax, BinaryExpressionSyntax> _visitBinaryExpression = default;
-        private Func<CSharpSyntaxRewriter, AssignmentExpressionSyntax, AssignmentExpressionSyntax> _visitAssignmentExpression = default;
-        private Func<CSharpSyntaxRewriter, ConditionalExpressionSyntax, ConditionalExpressionSyntax> _visitConditionalExpression = default;
-        private Func<CSharpSyntaxRewriter, ThisExpressionSyntax, ThisExpressionSyntax> _visitThisExpression = default;
-        private Func<CSharpSyntaxRewriter, BaseExpressionSyntax, BaseExpressionSyntax> _visitBaseExpression = default;
-        private Func<CSharpSyntaxRewriter, LiteralExpressionSyntax, LiteralExpressionSyntax> _visitLiteralExpression = default;
-        private Func<CSharpSyntaxRewriter, MakeRefExpressionSyntax, MakeRefExpressionSyntax> _visitMakeRefExpression = default;
-        private Func<CSharpSyntaxRewriter, RefTypeExpressionSyntax, RefTypeExpressionSyntax> _visitRefTypeExpression = default;
-        private Func<CSharpSyntaxRewriter, RefValueExpressionSyntax, RefValueExpressionSyntax> _visitRefValueExpression = default;
-        private Func<CSharpSyntaxRewriter, CheckedExpressionSyntax, CheckedExpressionSyntax> _visitCheckedExpression = default;
-        private Func<CSharpSyntaxRewriter, DefaultExpressionSyntax, DefaultExpressionSyntax> _visitDefaultExpression = default;
-        private Func<CSharpSyntaxRewriter, TypeOfExpressionSyntax, TypeOfExpressionSyntax> _visitTypeOfExpression = default;
-        private Func<CSharpSyntaxRewriter, SizeOfExpressionSyntax, SizeOfExpressionSyntax> _visitSizeOfExpression = default;
-        private Func<CSharpSyntaxRewriter, InvocationExpressionSyntax, InvocationExpressionSyntax> _visitInvocationExpression = default;
-        private Func<CSharpSyntaxRewriter, ElementAccessExpressionSyntax, ElementAccessExpressionSyntax> _visitElementAccessExpression = default;
-        private Func<CSharpSyntaxRewriter, ArgumentListSyntax, ArgumentListSyntax> _visitArgumentList = default;
-        private Func<CSharpSyntaxRewriter, BracketedArgumentListSyntax, BracketedArgumentListSyntax> _visitBracketedArgumentList = default;
-        private Func<CSharpSyntaxRewriter, ArgumentSyntax, ArgumentSyntax> _visitArgument = default;
-        private Func<CSharpSyntaxRewriter, ExpressionColonSyntax, ExpressionColonSyntax> _visitExpressionColon = default;
-        private Func<CSharpSyntaxRewriter, NameColonSyntax, NameColonSyntax> _visitNameColon = default;
-        private Func<CSharpSyntaxRewriter, DeclarationExpressionSyntax, DeclarationExpressionSyntax> _visitDeclarationExpression = default;
-        private Func<CSharpSyntaxRewriter, CastExpressionSyntax, CastExpressionSyntax> _visitCastExpression = default;
-        private Func<CSharpSyntaxRewriter, AnonymousMethodExpressionSyntax, AnonymousMethodExpressionSyntax> _visitAnonymousMethodExpression = default;
-        private Func<CSharpSyntaxRewriter, SimpleLambdaExpressionSyntax, SimpleLambdaExpressionSyntax> _visitSimpleLambdaExpression = default;
-        private Func<CSharpSyntaxRewriter, RefExpressionSyntax, RefExpressionSyntax> _visitRefExpression = default;
-        private Func<CSharpSyntaxRewriter, ParenthesizedLambdaExpressionSyntax, ParenthesizedLambdaExpressionSyntax> _visitParenthesizedLambdaExpression = default;
-        private Func<CSharpSyntaxRewriter, InitializerExpressionSyntax, InitializerExpressionSyntax> _visitInitializerExpression = default;
-        private Func<CSharpSyntaxRewriter, ImplicitObjectCreationExpressionSyntax, ImplicitObjectCreationExpressionSyntax> _visitImplicitObjectCreationExpression = default;
-        private Func<CSharpSyntaxRewriter, ObjectCreationExpressionSyntax, ObjectCreationExpressionSyntax> _visitObjectCreationExpression = default;
-        private Func<CSharpSyntaxRewriter, WithExpressionSyntax, WithExpressionSyntax> _visitWithExpression = default;
-        private Func<CSharpSyntaxRewriter, AnonymousObjectMemberDeclaratorSyntax, AnonymousObjectMemberDeclaratorSyntax> _visitAnonymousObjectMemberDeclarator = default;
-        private Func<CSharpSyntaxRewriter, AnonymousObjectCreationExpressionSyntax, AnonymousObjectCreationExpressionSyntax> _visitAnonymousObjectCreationExpression = default;
-        private Func<CSharpSyntaxRewriter, ArrayCreationExpressionSyntax, ArrayCreationExpressionSyntax> _visitArrayCreationExpression = default;
-        private Func<CSharpSyntaxRewriter, ImplicitArrayCreationExpressionSyntax, ImplicitArrayCreationExpressionSyntax> _visitImplicitArrayCreationExpression = default;
-        private Func<CSharpSyntaxRewriter, StackAllocArrayCreationExpressionSyntax, StackAllocArrayCreationExpressionSyntax> _visitStackAllocArrayCreationExpression = default;
-        private Func<CSharpSyntaxRewriter, ImplicitStackAllocArrayCreationExpressionSyntax, ImplicitStackAllocArrayCreationExpressionSyntax> _visitImplicitStackAllocArrayCreationExpression = default;
-        private Func<CSharpSyntaxRewriter, CollectionExpressionSyntax, CollectionExpressionSyntax> _visitCollectionExpression = default;
-        private Func<CSharpSyntaxRewriter, ExpressionElementSyntax, ExpressionElementSyntax> _visitExpressionElement = default;
-        private Func<CSharpSyntaxRewriter, SpreadElementSyntax, SpreadElementSyntax> _visitSpreadElement = default;
-        private Func<CSharpSyntaxRewriter, QueryExpressionSyntax, QueryExpressionSyntax> _visitQueryExpression = default;
-        private Func<CSharpSyntaxRewriter, QueryBodySyntax, QueryBodySyntax> _visitQueryBody = default;
-        private Func<CSharpSyntaxRewriter, FromClauseSyntax, FromClauseSyntax> _visitFromClause = default;
-        private Func<CSharpSyntaxRewriter, LetClauseSyntax, LetClauseSyntax> _visitLetClause = default;
-        private Func<CSharpSyntaxRewriter, JoinClauseSyntax, JoinClauseSyntax> _visitJoinClause = default;
-        private Func<CSharpSyntaxRewriter, JoinIntoClauseSyntax, JoinIntoClauseSyntax> _visitJoinIntoClause = default;
-        private Func<CSharpSyntaxRewriter, WhereClauseSyntax, WhereClauseSyntax> _visitWhereClause = default;
-        private Func<CSharpSyntaxRewriter, OrderByClauseSyntax, OrderByClauseSyntax> _visitOrderByClause = default;
-        private Func<CSharpSyntaxRewriter, OrderingSyntax, OrderingSyntax> _visitOrdering = default;
-        private Func<CSharpSyntaxRewriter, SelectClauseSyntax, SelectClauseSyntax> _visitSelectClause = default;
-        private Func<CSharpSyntaxRewriter, GroupClauseSyntax, GroupClauseSyntax> _visitGroupClause = default;
-        private Func<CSharpSyntaxRewriter, QueryContinuationSyntax, QueryContinuationSyntax> _visitQueryContinuation = default;
-        private Func<CSharpSyntaxRewriter, OmittedArraySizeExpressionSyntax, OmittedArraySizeExpressionSyntax> _visitOmittedArraySizeExpression = default;
-        private Func<CSharpSyntaxRewriter, InterpolatedStringExpressionSyntax, InterpolatedStringExpressionSyntax> _visitInterpolatedStringExpression = default;
-        private Func<CSharpSyntaxRewriter, IsPatternExpressionSyntax, IsPatternExpressionSyntax> _visitIsPatternExpression = default;
-        private Func<CSharpSyntaxRewriter, ThrowExpressionSyntax, ThrowExpressionSyntax> _visitThrowExpression = default;
-        private Func<CSharpSyntaxRewriter, WhenClauseSyntax, WhenClauseSyntax> _visitWhenClause = default;
-        private Func<CSharpSyntaxRewriter, DiscardPatternSyntax, DiscardPatternSyntax> _visitDiscardPattern = default;
-        private Func<CSharpSyntaxRewriter, DeclarationPatternSyntax, DeclarationPatternSyntax> _visitDeclarationPattern = default;
-        private Func<CSharpSyntaxRewriter, VarPatternSyntax, VarPatternSyntax> _visitVarPattern = default;
-        private Func<CSharpSyntaxRewriter, RecursivePatternSyntax, RecursivePatternSyntax> _visitRecursivePattern = default;
-        private Func<CSharpSyntaxRewriter, PositionalPatternClauseSyntax, PositionalPatternClauseSyntax> _visitPositionalPatternClause = default;
-        private Func<CSharpSyntaxRewriter, PropertyPatternClauseSyntax, PropertyPatternClauseSyntax> _visitPropertyPatternClause = default;
-        private Func<CSharpSyntaxRewriter, SubpatternSyntax, SubpatternSyntax> _visitSubpattern = default;
-        private Func<CSharpSyntaxRewriter, ConstantPatternSyntax, ConstantPatternSyntax> _visitConstantPattern = default;
-        private Func<CSharpSyntaxRewriter, ParenthesizedPatternSyntax, ParenthesizedPatternSyntax> _visitParenthesizedPattern = default;
-        private Func<CSharpSyntaxRewriter, RelationalPatternSyntax, RelationalPatternSyntax> _visitRelationalPattern = default;
-        private Func<CSharpSyntaxRewriter, TypePatternSyntax, TypePatternSyntax> _visitTypePattern = default;
-        private Func<CSharpSyntaxRewriter, BinaryPatternSyntax, BinaryPatternSyntax> _visitBinaryPattern = default;
-        private Func<CSharpSyntaxRewriter, UnaryPatternSyntax, UnaryPatternSyntax> _visitUnaryPattern = default;
-        private Func<CSharpSyntaxRewriter, ListPatternSyntax, ListPatternSyntax> _visitListPattern = default;
-        private Func<CSharpSyntaxRewriter, SlicePatternSyntax, SlicePatternSyntax> _visitSlicePattern = default;
-        private Func<CSharpSyntaxRewriter, InterpolatedStringTextSyntax, InterpolatedStringTextSyntax> _visitInterpolatedStringText = default;
-        private Func<CSharpSyntaxRewriter, InterpolationSyntax, InterpolationSyntax> _visitInterpolation = default;
-        private Func<CSharpSyntaxRewriter, InterpolationAlignmentClauseSyntax, InterpolationAlignmentClauseSyntax> _visitInterpolationAlignmentClause = default;
-        private Func<CSharpSyntaxRewriter, InterpolationFormatClauseSyntax, InterpolationFormatClauseSyntax> _visitInterpolationFormatClause = default;
-        private Func<CSharpSyntaxRewriter, GlobalStatementSyntax, GlobalStatementSyntax> _visitGlobalStatement = default;
-        private Func<CSharpSyntaxRewriter, BlockSyntax, BlockSyntax> _visitBlock = default;
-        private Func<CSharpSyntaxRewriter, LocalFunctionStatementSyntax, LocalFunctionStatementSyntax> _visitLocalFunctionStatement = default;
-        private Func<CSharpSyntaxRewriter, LocalDeclarationStatementSyntax, LocalDeclarationStatementSyntax> _visitLocalDeclarationStatement = default;
-        private Func<CSharpSyntaxRewriter, VariableDeclarationSyntax, VariableDeclarationSyntax> _visitVariableDeclaration = default;
-        private Func<CSharpSyntaxRewriter, VariableDeclaratorSyntax, VariableDeclaratorSyntax> _visitVariableDeclarator = default;
-        private Func<CSharpSyntaxRewriter, EqualsValueClauseSyntax, EqualsValueClauseSyntax> _visitEqualsValueClause = default;
-        private Func<CSharpSyntaxRewriter, SingleVariableDesignationSyntax, SingleVariableDesignationSyntax> _visitSingleVariableDesignation = default;
-        private Func<CSharpSyntaxRewriter, DiscardDesignationSyntax, DiscardDesignationSyntax> _visitDiscardDesignation = default;
-        private Func<CSharpSyntaxRewriter, ParenthesizedVariableDesignationSyntax, ParenthesizedVariableDesignationSyntax> _visitParenthesizedVariableDesignation = default;
-        private Func<CSharpSyntaxRewriter, ExpressionStatementSyntax, ExpressionStatementSyntax> _visitExpressionStatement = default;
-        private Func<CSharpSyntaxRewriter, EmptyStatementSyntax, EmptyStatementSyntax> _visitEmptyStatement = default;
-        private Func<CSharpSyntaxRewriter, LabeledStatementSyntax, LabeledStatementSyntax> _visitLabeledStatement = default;
-        private Func<CSharpSyntaxRewriter, GotoStatementSyntax, GotoStatementSyntax> _visitGotoStatement = default;
-        private Func<CSharpSyntaxRewriter, BreakStatementSyntax, BreakStatementSyntax> _visitBreakStatement = default;
-        private Func<CSharpSyntaxRewriter, ContinueStatementSyntax, ContinueStatementSyntax> _visitContinueStatement = default;
-        private Func<CSharpSyntaxRewriter, ReturnStatementSyntax, ReturnStatementSyntax> _visitReturnStatement = default;
-        private Func<CSharpSyntaxRewriter, ThrowStatementSyntax, ThrowStatementSyntax> _visitThrowStatement = default;
-        private Func<CSharpSyntaxRewriter, YieldStatementSyntax, YieldStatementSyntax> _visitYieldStatement = default;
-        private Func<CSharpSyntaxRewriter, WhileStatementSyntax, WhileStatementSyntax> _visitWhileStatement = default;
-        private Func<CSharpSyntaxRewriter, DoStatementSyntax, DoStatementSyntax> _visitDoStatement = default;
-        private Func<CSharpSyntaxRewriter, ForStatementSyntax, ForStatementSyntax> _visitForStatement = default;
-        private Func<CSharpSyntaxRewriter, ForEachStatementSyntax, ForEachStatementSyntax> _visitForEachStatement = default;
-        private Func<CSharpSyntaxRewriter, ForEachVariableStatementSyntax, ForEachVariableStatementSyntax> _visitForEachVariableStatement = default;
-        private Func<CSharpSyntaxRewriter, UsingStatementSyntax, UsingStatementSyntax> _visitUsingStatement = default;
-        private Func<CSharpSyntaxRewriter, FixedStatementSyntax, FixedStatementSyntax> _visitFixedStatement = default;
-        private Func<CSharpSyntaxRewriter, CheckedStatementSyntax, CheckedStatementSyntax> _visitCheckedStatement = default;
-        private Func<CSharpSyntaxRewriter, UnsafeStatementSyntax, UnsafeStatementSyntax> _visitUnsafeStatement = default;
-        private Func<CSharpSyntaxRewriter, LockStatementSyntax, LockStatementSyntax> _visitLockStatement = default;
-        private Func<CSharpSyntaxRewriter, IfStatementSyntax, IfStatementSyntax> _visitIfStatement = default;
-        private Func<CSharpSyntaxRewriter, ElseClauseSyntax, ElseClauseSyntax> _visitElseClause = default;
-        private Func<CSharpSyntaxRewriter, SwitchStatementSyntax, SwitchStatementSyntax> _visitSwitchStatement = default;
-        private Func<CSharpSyntaxRewriter, SwitchSectionSyntax, SwitchSectionSyntax> _visitSwitchSection = default;
-        private Func<CSharpSyntaxRewriter, CasePatternSwitchLabelSyntax, CasePatternSwitchLabelSyntax> _visitCasePatternSwitchLabel = default;
-        private Func<CSharpSyntaxRewriter, CaseSwitchLabelSyntax, CaseSwitchLabelSyntax> _visitCaseSwitchLabel = default;
-        private Func<CSharpSyntaxRewriter, DefaultSwitchLabelSyntax, DefaultSwitchLabelSyntax> _visitDefaultSwitchLabel = default;
-        private Func<CSharpSyntaxRewriter, SwitchExpressionSyntax, SwitchExpressionSyntax> _visitSwitchExpression = default;
-        private Func<CSharpSyntaxRewriter, SwitchExpressionArmSyntax, SwitchExpressionArmSyntax> _visitSwitchExpressionArm = default;
-        private Func<CSharpSyntaxRewriter, TryStatementSyntax, TryStatementSyntax> _visitTryStatement = default;
-        private Func<CSharpSyntaxRewriter, CatchClauseSyntax, CatchClauseSyntax> _visitCatchClause = default;
-        private Func<CSharpSyntaxRewriter, CatchDeclarationSyntax, CatchDeclarationSyntax> _visitCatchDeclaration = default;
-        private Func<CSharpSyntaxRewriter, CatchFilterClauseSyntax, CatchFilterClauseSyntax> _visitCatchFilterClause = default;
-        private Func<CSharpSyntaxRewriter, FinallyClauseSyntax, FinallyClauseSyntax> _visitFinallyClause = default;
-        private Func<CSharpSyntaxRewriter, CompilationUnitSyntax, CompilationUnitSyntax> _visitCompilationUnit = default;
-        private Func<CSharpSyntaxRewriter, ExternAliasDirectiveSyntax, ExternAliasDirectiveSyntax> _visitExternAliasDirective = default;
-        private Func<CSharpSyntaxRewriter, UsingDirectiveSyntax, UsingDirectiveSyntax> _visitUsingDirective = default;
-        private Func<CSharpSyntaxRewriter, NamespaceDeclarationSyntax, NamespaceDeclarationSyntax> _visitNamespaceDeclaration = default;
-        private Func<CSharpSyntaxRewriter, FileScopedNamespaceDeclarationSyntax, FileScopedNamespaceDeclarationSyntax> _visitFileScopedNamespaceDeclaration = default;
-        private Func<CSharpSyntaxRewriter, AttributeListSyntax, AttributeListSyntax> _visitAttributeList = default;
-        private Func<CSharpSyntaxRewriter, AttributeTargetSpecifierSyntax, AttributeTargetSpecifierSyntax> _visitAttributeTargetSpecifier = default;
-        private Func<CSharpSyntaxRewriter, AttributeSyntax, AttributeSyntax> _visitAttribute = default;
-        private Func<CSharpSyntaxRewriter, AttributeArgumentListSyntax, AttributeArgumentListSyntax> _visitAttributeArgumentList = default;
-        private Func<CSharpSyntaxRewriter, AttributeArgumentSyntax, AttributeArgumentSyntax> _visitAttributeArgument = default;
-        private Func<CSharpSyntaxRewriter, NameEqualsSyntax, NameEqualsSyntax> _visitNameEquals = default;
-        private Func<CSharpSyntaxRewriter, TypeParameterListSyntax, TypeParameterListSyntax> _visitTypeParameterList = default;
-        private Func<CSharpSyntaxRewriter, TypeParameterSyntax, TypeParameterSyntax> _visitTypeParameter = default;
-        private Func<CSharpSyntaxRewriter, ClassDeclarationSyntax, ClassDeclarationSyntax> _visitClassDeclaration = default;
-        private Func<CSharpSyntaxRewriter, StructDeclarationSyntax, StructDeclarationSyntax> _visitStructDeclaration = default;
-        private Func<CSharpSyntaxRewriter, InterfaceDeclarationSyntax, InterfaceDeclarationSyntax> _visitInterfaceDeclaration = default;
-        private Func<CSharpSyntaxRewriter, RecordDeclarationSyntax, RecordDeclarationSyntax> _visitRecordDeclaration = default;
-        private Func<CSharpSyntaxRewriter, EnumDeclarationSyntax, EnumDeclarationSyntax> _visitEnumDeclaration = default;
-        private Func<CSharpSyntaxRewriter, DelegateDeclarationSyntax, DelegateDeclarationSyntax> _visitDelegateDeclaration = default;
-        private Func<CSharpSyntaxRewriter, EnumMemberDeclarationSyntax, EnumMemberDeclarationSyntax> _visitEnumMemberDeclaration = default;
-        private Func<CSharpSyntaxRewriter, BaseListSyntax, BaseListSyntax> _visitBaseList = default;
-        private Func<CSharpSyntaxRewriter, SimpleBaseTypeSyntax, SimpleBaseTypeSyntax> _visitSimpleBaseType = default;
-        private Func<CSharpSyntaxRewriter, PrimaryConstructorBaseTypeSyntax, PrimaryConstructorBaseTypeSyntax> _visitPrimaryConstructorBaseType = default;
-        private Func<CSharpSyntaxRewriter, TypeParameterConstraintClauseSyntax, TypeParameterConstraintClauseSyntax> _visitTypeParameterConstraintClause = default;
-        private Func<CSharpSyntaxRewriter, ConstructorConstraintSyntax, ConstructorConstraintSyntax> _visitConstructorConstraint = default;
-        private Func<CSharpSyntaxRewriter, ClassOrStructConstraintSyntax, ClassOrStructConstraintSyntax> _visitClassOrStructConstraint = default;
-        private Func<CSharpSyntaxRewriter, TypeConstraintSyntax, TypeConstraintSyntax> _visitTypeConstraint = default;
-        private Func<CSharpSyntaxRewriter, DefaultConstraintSyntax, DefaultConstraintSyntax> _visitDefaultConstraint = default;
-        private Func<CSharpSyntaxRewriter, FieldDeclarationSyntax, FieldDeclarationSyntax> _visitFieldDeclaration = default;
-        private Func<CSharpSyntaxRewriter, EventFieldDeclarationSyntax, EventFieldDeclarationSyntax> _visitEventFieldDeclaration = default;
-        private Func<CSharpSyntaxRewriter, ExplicitInterfaceSpecifierSyntax, ExplicitInterfaceSpecifierSyntax> _visitExplicitInterfaceSpecifier = default;
-        private Func<CSharpSyntaxRewriter, MethodDeclarationSyntax, MethodDeclarationSyntax> _visitMethodDeclaration = default;
-        private Func<CSharpSyntaxRewriter, OperatorDeclarationSyntax, OperatorDeclarationSyntax> _visitOperatorDeclaration = default;
-        private Func<CSharpSyntaxRewriter, ConversionOperatorDeclarationSyntax, ConversionOperatorDeclarationSyntax> _visitConversionOperatorDeclaration = default;
-        private Func<CSharpSyntaxRewriter, ConstructorDeclarationSyntax, ConstructorDeclarationSyntax> _visitConstructorDeclaration = default;
-        private Func<CSharpSyntaxRewriter, ConstructorInitializerSyntax, ConstructorInitializerSyntax> _visitConstructorInitializer = default;
-        private Func<CSharpSyntaxRewriter, DestructorDeclarationSyntax, DestructorDeclarationSyntax> _visitDestructorDeclaration = default;
-        private Func<CSharpSyntaxRewriter, PropertyDeclarationSyntax, PropertyDeclarationSyntax> _visitPropertyDeclaration = default;
-        private Func<CSharpSyntaxRewriter, ArrowExpressionClauseSyntax, ArrowExpressionClauseSyntax> _visitArrowExpressionClause = default;
-        private Func<CSharpSyntaxRewriter, EventDeclarationSyntax, EventDeclarationSyntax> _visitEventDeclaration = default;
-        private Func<CSharpSyntaxRewriter, IndexerDeclarationSyntax, IndexerDeclarationSyntax> _visitIndexerDeclaration = default;
-        private Func<CSharpSyntaxRewriter, AccessorListSyntax, AccessorListSyntax> _visitAccessorList = default;
-        private Func<CSharpSyntaxRewriter, AccessorDeclarationSyntax, AccessorDeclarationSyntax> _visitAccessorDeclaration = default;
-        private Func<CSharpSyntaxRewriter, ParameterListSyntax, ParameterListSyntax> _visitParameterList = default;
-        private Func<CSharpSyntaxRewriter, BracketedParameterListSyntax, BracketedParameterListSyntax> _visitBracketedParameterList = default;
-        private Func<CSharpSyntaxRewriter, ParameterSyntax, ParameterSyntax> _visitParameter = default;
-        private Func<CSharpSyntaxRewriter, FunctionPointerParameterSyntax, FunctionPointerParameterSyntax> _visitFunctionPointerParameter = default;
-        private Func<CSharpSyntaxRewriter, IncompleteMemberSyntax, IncompleteMemberSyntax> _visitIncompleteMember = default;
-        private Func<CSharpSyntaxRewriter, SkippedTokensTriviaSyntax, SkippedTokensTriviaSyntax> _visitSkippedTokensTrivia = default;
-        private Func<CSharpSyntaxRewriter, DocumentationCommentTriviaSyntax, DocumentationCommentTriviaSyntax> _visitDocumentationCommentTrivia = default;
-        private Func<CSharpSyntaxRewriter, TypeCrefSyntax, TypeCrefSyntax> _visitTypeCref = default;
-        private Func<CSharpSyntaxRewriter, QualifiedCrefSyntax, QualifiedCrefSyntax> _visitQualifiedCref = default;
-        private Func<CSharpSyntaxRewriter, NameMemberCrefSyntax, NameMemberCrefSyntax> _visitNameMemberCref = default;
-        private Func<CSharpSyntaxRewriter, IndexerMemberCrefSyntax, IndexerMemberCrefSyntax> _visitIndexerMemberCref = default;
-        private Func<CSharpSyntaxRewriter, OperatorMemberCrefSyntax, OperatorMemberCrefSyntax> _visitOperatorMemberCref = default;
-        private Func<CSharpSyntaxRewriter, ConversionOperatorMemberCrefSyntax, ConversionOperatorMemberCrefSyntax> _visitConversionOperatorMemberCref = default;
-        private Func<CSharpSyntaxRewriter, CrefParameterListSyntax, CrefParameterListSyntax> _visitCrefParameterList = default;
-        private Func<CSharpSyntaxRewriter, CrefBracketedParameterListSyntax, CrefBracketedParameterListSyntax> _visitCrefBracketedParameterList = default;
-        private Func<CSharpSyntaxRewriter, CrefParameterSyntax, CrefParameterSyntax> _visitCrefParameter = default;
-        private Func<CSharpSyntaxRewriter, XmlElementSyntax, XmlElementSyntax> _visitXmlElement = default;
-        private Func<CSharpSyntaxRewriter, XmlElementStartTagSyntax, XmlElementStartTagSyntax> _visitXmlElementStartTag = default;
-        private Func<CSharpSyntaxRewriter, XmlElementEndTagSyntax, XmlElementEndTagSyntax> _visitXmlElementEndTag = default;
-        private Func<CSharpSyntaxRewriter, XmlEmptyElementSyntax, XmlEmptyElementSyntax> _visitXmlEmptyElement = default;
-        private Func<CSharpSyntaxRewriter, XmlNameSyntax, XmlNameSyntax> _visitXmlName = default;
-        private Func<CSharpSyntaxRewriter, XmlPrefixSyntax, XmlPrefixSyntax> _visitXmlPrefix = default;
-        private Func<CSharpSyntaxRewriter, XmlTextAttributeSyntax, XmlTextAttributeSyntax> _visitXmlTextAttribute = default;
-        private Func<CSharpSyntaxRewriter, XmlCrefAttributeSyntax, XmlCrefAttributeSyntax> _visitXmlCrefAttribute = default;
-        private Func<CSharpSyntaxRewriter, XmlNameAttributeSyntax, XmlNameAttributeSyntax> _visitXmlNameAttribute = default;
-        private Func<CSharpSyntaxRewriter, XmlTextSyntax, XmlTextSyntax> _visitXmlText = default;
-        private Func<CSharpSyntaxRewriter, XmlCDataSectionSyntax, XmlCDataSectionSyntax> _visitXmlCDataSection = default;
-        private Func<CSharpSyntaxRewriter, XmlProcessingInstructionSyntax, XmlProcessingInstructionSyntax> _visitXmlProcessingInstruction = default;
-        private Func<CSharpSyntaxRewriter, XmlCommentSyntax, XmlCommentSyntax> _visitXmlComment = default;
-        private Func<CSharpSyntaxRewriter, IfDirectiveTriviaSyntax, IfDirectiveTriviaSyntax> _visitIfDirectiveTrivia = default;
-        private Func<CSharpSyntaxRewriter, ElifDirectiveTriviaSyntax, ElifDirectiveTriviaSyntax> _visitElifDirectiveTrivia = default;
-        private Func<CSharpSyntaxRewriter, ElseDirectiveTriviaSyntax, ElseDirectiveTriviaSyntax> _visitElseDirectiveTrivia = default;
-        private Func<CSharpSyntaxRewriter, EndIfDirectiveTriviaSyntax, EndIfDirectiveTriviaSyntax> _visitEndIfDirectiveTrivia = default;
-        private Func<CSharpSyntaxRewriter, RegionDirectiveTriviaSyntax, RegionDirectiveTriviaSyntax> _visitRegionDirectiveTrivia = default;
-        private Func<CSharpSyntaxRewriter, EndRegionDirectiveTriviaSyntax, EndRegionDirectiveTriviaSyntax> _visitEndRegionDirectiveTrivia = default;
-        private Func<CSharpSyntaxRewriter, ErrorDirectiveTriviaSyntax, ErrorDirectiveTriviaSyntax> _visitErrorDirectiveTrivia = default;
-        private Func<CSharpSyntaxRewriter, WarningDirectiveTriviaSyntax, WarningDirectiveTriviaSyntax> _visitWarningDirectiveTrivia = default;
-        private Func<CSharpSyntaxRewriter, BadDirectiveTriviaSyntax, BadDirectiveTriviaSyntax> _visitBadDirectiveTrivia = default;
-        private Func<CSharpSyntaxRewriter, DefineDirectiveTriviaSyntax, DefineDirectiveTriviaSyntax> _visitDefineDirectiveTrivia = default;
-        private Func<CSharpSyntaxRewriter, UndefDirectiveTriviaSyntax, UndefDirectiveTriviaSyntax> _visitUndefDirectiveTrivia = default;
-        private Func<CSharpSyntaxRewriter, LineDirectiveTriviaSyntax, LineDirectiveTriviaSyntax> _visitLineDirectiveTrivia = default;
-        private Func<CSharpSyntaxRewriter, LineDirectivePositionSyntax, LineDirectivePositionSyntax> _visitLineDirectivePosition = default;
-        private Func<CSharpSyntaxRewriter, LineSpanDirectiveTriviaSyntax, LineSpanDirectiveTriviaSyntax> _visitLineSpanDirectiveTrivia = default;
-        private Func<CSharpSyntaxRewriter, PragmaWarningDirectiveTriviaSyntax, PragmaWarningDirectiveTriviaSyntax> _visitPragmaWarningDirectiveTrivia = default;
-        private Func<CSharpSyntaxRewriter, PragmaChecksumDirectiveTriviaSyntax, PragmaChecksumDirectiveTriviaSyntax> _visitPragmaChecksumDirectiveTrivia = default;
-        private Func<CSharpSyntaxRewriter, ReferenceDirectiveTriviaSyntax, ReferenceDirectiveTriviaSyntax> _visitReferenceDirectiveTrivia = default;
-        private Func<CSharpSyntaxRewriter, LoadDirectiveTriviaSyntax, LoadDirectiveTriviaSyntax> _visitLoadDirectiveTrivia = default;
-        private Func<CSharpSyntaxRewriter, ShebangDirectiveTriviaSyntax, ShebangDirectiveTriviaSyntax> _visitShebangDirectiveTrivia = default;
-        private Func<CSharpSyntaxRewriter, NullableDirectiveTriviaSyntax, NullableDirectiveTriviaSyntax> _visitNullableDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, IdentifierNameSyntax, SyntaxNode> _visitIdentifierName = default;
+        private Func<CSharpSyntaxRewriter, QualifiedNameSyntax, SyntaxNode> _visitQualifiedName = default;
+        private Func<CSharpSyntaxRewriter, GenericNameSyntax, SyntaxNode> _visitGenericName = default;
+        private Func<CSharpSyntaxRewriter, TypeArgumentListSyntax, SyntaxNode> _visitTypeArgumentList = default;
+        private Func<CSharpSyntaxRewriter, AliasQualifiedNameSyntax, SyntaxNode> _visitAliasQualifiedName = default;
+        private Func<CSharpSyntaxRewriter, PredefinedTypeSyntax, SyntaxNode> _visitPredefinedType = default;
+        private Func<CSharpSyntaxRewriter, ArrayTypeSyntax, SyntaxNode> _visitArrayType = default;
+        private Func<CSharpSyntaxRewriter, ArrayRankSpecifierSyntax, SyntaxNode> _visitArrayRankSpecifier = default;
+        private Func<CSharpSyntaxRewriter, PointerTypeSyntax, SyntaxNode> _visitPointerType = default;
+        private Func<CSharpSyntaxRewriter, FunctionPointerTypeSyntax, SyntaxNode> _visitFunctionPointerType = default;
+        private Func<CSharpSyntaxRewriter, FunctionPointerParameterListSyntax, SyntaxNode> _visitFunctionPointerParameterList = default;
+        private Func<CSharpSyntaxRewriter, FunctionPointerCallingConventionSyntax, SyntaxNode> _visitFunctionPointerCallingConvention = default;
+        private Func<CSharpSyntaxRewriter, FunctionPointerUnmanagedCallingConventionListSyntax, SyntaxNode> _visitFunctionPointerUnmanagedCallingConventionList = default;
+        private Func<CSharpSyntaxRewriter, FunctionPointerUnmanagedCallingConventionSyntax, SyntaxNode> _visitFunctionPointerUnmanagedCallingConvention = default;
+        private Func<CSharpSyntaxRewriter, NullableTypeSyntax, SyntaxNode> _visitNullableType = default;
+        private Func<CSharpSyntaxRewriter, TupleTypeSyntax, SyntaxNode> _visitTupleType = default;
+        private Func<CSharpSyntaxRewriter, TupleElementSyntax, SyntaxNode> _visitTupleElement = default;
+        private Func<CSharpSyntaxRewriter, OmittedTypeArgumentSyntax, SyntaxNode> _visitOmittedTypeArgument = default;
+        private Func<CSharpSyntaxRewriter, RefTypeSyntax, SyntaxNode> _visitRefType = default;
+        private Func<CSharpSyntaxRewriter, ScopedTypeSyntax, SyntaxNode> _visitScopedType = default;
+        private Func<CSharpSyntaxRewriter, ParenthesizedExpressionSyntax, SyntaxNode> _visitParenthesizedExpression = default;
+        private Func<CSharpSyntaxRewriter, TupleExpressionSyntax, SyntaxNode> _visitTupleExpression = default;
+        private Func<CSharpSyntaxRewriter, PrefixUnaryExpressionSyntax, SyntaxNode> _visitPrefixUnaryExpression = default;
+        private Func<CSharpSyntaxRewriter, AwaitExpressionSyntax, SyntaxNode> _visitAwaitExpression = default;
+        private Func<CSharpSyntaxRewriter, PostfixUnaryExpressionSyntax, SyntaxNode> _visitPostfixUnaryExpression = default;
+        private Func<CSharpSyntaxRewriter, MemberAccessExpressionSyntax, SyntaxNode> _visitMemberAccessExpression = default;
+        private Func<CSharpSyntaxRewriter, ConditionalAccessExpressionSyntax, SyntaxNode> _visitConditionalAccessExpression = default;
+        private Func<CSharpSyntaxRewriter, MemberBindingExpressionSyntax, SyntaxNode> _visitMemberBindingExpression = default;
+        private Func<CSharpSyntaxRewriter, ElementBindingExpressionSyntax, SyntaxNode> _visitElementBindingExpression = default;
+        private Func<CSharpSyntaxRewriter, RangeExpressionSyntax, SyntaxNode> _visitRangeExpression = default;
+        private Func<CSharpSyntaxRewriter, ImplicitElementAccessSyntax, SyntaxNode> _visitImplicitElementAccess = default;
+        private Func<CSharpSyntaxRewriter, BinaryExpressionSyntax, SyntaxNode> _visitBinaryExpression = default;
+        private Func<CSharpSyntaxRewriter, AssignmentExpressionSyntax, SyntaxNode> _visitAssignmentExpression = default;
+        private Func<CSharpSyntaxRewriter, ConditionalExpressionSyntax, SyntaxNode> _visitConditionalExpression = default;
+        private Func<CSharpSyntaxRewriter, ThisExpressionSyntax, SyntaxNode> _visitThisExpression = default;
+        private Func<CSharpSyntaxRewriter, BaseExpressionSyntax, SyntaxNode> _visitBaseExpression = default;
+        private Func<CSharpSyntaxRewriter, LiteralExpressionSyntax, SyntaxNode> _visitLiteralExpression = default;
+        private Func<CSharpSyntaxRewriter, MakeRefExpressionSyntax, SyntaxNode> _visitMakeRefExpression = default;
+        private Func<CSharpSyntaxRewriter, RefTypeExpressionSyntax, SyntaxNode> _visitRefTypeExpression = default;
+        private Func<CSharpSyntaxRewriter, RefValueExpressionSyntax, SyntaxNode> _visitRefValueExpression = default;
+        private Func<CSharpSyntaxRewriter, CheckedExpressionSyntax, SyntaxNode> _visitCheckedExpression = default;
+        private Func<CSharpSyntaxRewriter, DefaultExpressionSyntax, SyntaxNode> _visitDefaultExpression = default;
+        private Func<CSharpSyntaxRewriter, TypeOfExpressionSyntax, SyntaxNode> _visitTypeOfExpression = default;
+        private Func<CSharpSyntaxRewriter, SizeOfExpressionSyntax, SyntaxNode> _visitSizeOfExpression = default;
+        private Func<CSharpSyntaxRewriter, InvocationExpressionSyntax, SyntaxNode> _visitInvocationExpression = default;
+        private Func<CSharpSyntaxRewriter, ElementAccessExpressionSyntax, SyntaxNode> _visitElementAccessExpression = default;
+        private Func<CSharpSyntaxRewriter, ArgumentListSyntax, SyntaxNode> _visitArgumentList = default;
+        private Func<CSharpSyntaxRewriter, BracketedArgumentListSyntax, SyntaxNode> _visitBracketedArgumentList = default;
+        private Func<CSharpSyntaxRewriter, ArgumentSyntax, SyntaxNode> _visitArgument = default;
+        private Func<CSharpSyntaxRewriter, ExpressionColonSyntax, SyntaxNode> _visitExpressionColon = default;
+        private Func<CSharpSyntaxRewriter, NameColonSyntax, SyntaxNode> _visitNameColon = default;
+        private Func<CSharpSyntaxRewriter, DeclarationExpressionSyntax, SyntaxNode> _visitDeclarationExpression = default;
+        private Func<CSharpSyntaxRewriter, CastExpressionSyntax, SyntaxNode> _visitCastExpression = default;
+        private Func<CSharpSyntaxRewriter, AnonymousMethodExpressionSyntax, SyntaxNode> _visitAnonymousMethodExpression = default;
+        private Func<CSharpSyntaxRewriter, SimpleLambdaExpressionSyntax, SyntaxNode> _visitSimpleLambdaExpression = default;
+        private Func<CSharpSyntaxRewriter, RefExpressionSyntax, SyntaxNode> _visitRefExpression = default;
+        private Func<CSharpSyntaxRewriter, ParenthesizedLambdaExpressionSyntax, SyntaxNode> _visitParenthesizedLambdaExpression = default;
+        private Func<CSharpSyntaxRewriter, InitializerExpressionSyntax, SyntaxNode> _visitInitializerExpression = default;
+        private Func<CSharpSyntaxRewriter, ImplicitObjectCreationExpressionSyntax, SyntaxNode> _visitImplicitObjectCreationExpression = default;
+        private Func<CSharpSyntaxRewriter, ObjectCreationExpressionSyntax, SyntaxNode> _visitObjectCreationExpression = default;
+        private Func<CSharpSyntaxRewriter, WithExpressionSyntax, SyntaxNode> _visitWithExpression = default;
+        private Func<CSharpSyntaxRewriter, AnonymousObjectMemberDeclaratorSyntax, SyntaxNode> _visitAnonymousObjectMemberDeclarator = default;
+        private Func<CSharpSyntaxRewriter, AnonymousObjectCreationExpressionSyntax, SyntaxNode> _visitAnonymousObjectCreationExpression = default;
+        private Func<CSharpSyntaxRewriter, ArrayCreationExpressionSyntax, SyntaxNode> _visitArrayCreationExpression = default;
+        private Func<CSharpSyntaxRewriter, ImplicitArrayCreationExpressionSyntax, SyntaxNode> _visitImplicitArrayCreationExpression = default;
+        private Func<CSharpSyntaxRewriter, StackAllocArrayCreationExpressionSyntax, SyntaxNode> _visitStackAllocArrayCreationExpression = default;
+        private Func<CSharpSyntaxRewriter, ImplicitStackAllocArrayCreationExpressionSyntax, SyntaxNode> _visitImplicitStackAllocArrayCreationExpression = default;
+        private Func<CSharpSyntaxRewriter, CollectionExpressionSyntax, SyntaxNode> _visitCollectionExpression = default;
+        private Func<CSharpSyntaxRewriter, ExpressionElementSyntax, SyntaxNode> _visitExpressionElement = default;
+        private Func<CSharpSyntaxRewriter, SpreadElementSyntax, SyntaxNode> _visitSpreadElement = default;
+        private Func<CSharpSyntaxRewriter, QueryExpressionSyntax, SyntaxNode> _visitQueryExpression = default;
+        private Func<CSharpSyntaxRewriter, QueryBodySyntax, SyntaxNode> _visitQueryBody = default;
+        private Func<CSharpSyntaxRewriter, FromClauseSyntax, SyntaxNode> _visitFromClause = default;
+        private Func<CSharpSyntaxRewriter, LetClauseSyntax, SyntaxNode> _visitLetClause = default;
+        private Func<CSharpSyntaxRewriter, JoinClauseSyntax, SyntaxNode> _visitJoinClause = default;
+        private Func<CSharpSyntaxRewriter, JoinIntoClauseSyntax, SyntaxNode> _visitJoinIntoClause = default;
+        private Func<CSharpSyntaxRewriter, WhereClauseSyntax, SyntaxNode> _visitWhereClause = default;
+        private Func<CSharpSyntaxRewriter, OrderByClauseSyntax, SyntaxNode> _visitOrderByClause = default;
+        private Func<CSharpSyntaxRewriter, OrderingSyntax, SyntaxNode> _visitOrdering = default;
+        private Func<CSharpSyntaxRewriter, SelectClauseSyntax, SyntaxNode> _visitSelectClause = default;
+        private Func<CSharpSyntaxRewriter, GroupClauseSyntax, SyntaxNode> _visitGroupClause = default;
+        private Func<CSharpSyntaxRewriter, QueryContinuationSyntax, SyntaxNode> _visitQueryContinuation = default;
+        private Func<CSharpSyntaxRewriter, OmittedArraySizeExpressionSyntax, SyntaxNode> _visitOmittedArraySizeExpression = default;
+        private Func<CSharpSyntaxRewriter, InterpolatedStringExpressionSyntax, SyntaxNode> _visitInterpolatedStringExpression = default;
+        private Func<CSharpSyntaxRewriter, IsPatternExpressionSyntax, SyntaxNode> _visitIsPatternExpression = default;
+        private Func<CSharpSyntaxRewriter, ThrowExpressionSyntax, SyntaxNode> _visitThrowExpression = default;
+        private Func<CSharpSyntaxRewriter, WhenClauseSyntax, SyntaxNode> _visitWhenClause = default;
+        private Func<CSharpSyntaxRewriter, DiscardPatternSyntax, SyntaxNode> _visitDiscardPattern = default;
+        private Func<CSharpSyntaxRewriter, DeclarationPatternSyntax, SyntaxNode> _visitDeclarationPattern = default;
+        private Func<CSharpSyntaxRewriter, VarPatternSyntax, SyntaxNode> _visitVarPattern = default;
+        private Func<CSharpSyntaxRewriter, RecursivePatternSyntax, SyntaxNode> _visitRecursivePattern = default;
+        private Func<CSharpSyntaxRewriter, PositionalPatternClauseSyntax, SyntaxNode> _visitPositionalPatternClause = default;
+        private Func<CSharpSyntaxRewriter, PropertyPatternClauseSyntax, SyntaxNode> _visitPropertyPatternClause = default;
+        private Func<CSharpSyntaxRewriter, SubpatternSyntax, SyntaxNode> _visitSubpattern = default;
+        private Func<CSharpSyntaxRewriter, ConstantPatternSyntax, SyntaxNode> _visitConstantPattern = default;
+        private Func<CSharpSyntaxRewriter, ParenthesizedPatternSyntax, SyntaxNode> _visitParenthesizedPattern = default;
+        private Func<CSharpSyntaxRewriter, RelationalPatternSyntax, SyntaxNode> _visitRelationalPattern = default;
+        private Func<CSharpSyntaxRewriter, TypePatternSyntax, SyntaxNode> _visitTypePattern = default;
+        private Func<CSharpSyntaxRewriter, BinaryPatternSyntax, SyntaxNode> _visitBinaryPattern = default;
+        private Func<CSharpSyntaxRewriter, UnaryPatternSyntax, SyntaxNode> _visitUnaryPattern = default;
+        private Func<CSharpSyntaxRewriter, ListPatternSyntax, SyntaxNode> _visitListPattern = default;
+        private Func<CSharpSyntaxRewriter, SlicePatternSyntax, SyntaxNode> _visitSlicePattern = default;
+        private Func<CSharpSyntaxRewriter, InterpolatedStringTextSyntax, SyntaxNode> _visitInterpolatedStringText = default;
+        private Func<CSharpSyntaxRewriter, InterpolationSyntax, SyntaxNode> _visitInterpolation = default;
+        private Func<CSharpSyntaxRewriter, InterpolationAlignmentClauseSyntax, SyntaxNode> _visitInterpolationAlignmentClause = default;
+        private Func<CSharpSyntaxRewriter, InterpolationFormatClauseSyntax, SyntaxNode> _visitInterpolationFormatClause = default;
+        private Func<CSharpSyntaxRewriter, GlobalStatementSyntax, SyntaxNode> _visitGlobalStatement = default;
+        private Func<CSharpSyntaxRewriter, BlockSyntax, SyntaxNode> _visitBlock = default;
+        private Func<CSharpSyntaxRewriter, LocalFunctionStatementSyntax, SyntaxNode> _visitLocalFunctionStatement = default;
+        private Func<CSharpSyntaxRewriter, LocalDeclarationStatementSyntax, SyntaxNode> _visitLocalDeclarationStatement = default;
+        private Func<CSharpSyntaxRewriter, VariableDeclarationSyntax, SyntaxNode> _visitVariableDeclaration = default;
+        private Func<CSharpSyntaxRewriter, VariableDeclaratorSyntax, SyntaxNode> _visitVariableDeclarator = default;
+        private Func<CSharpSyntaxRewriter, EqualsValueClauseSyntax, SyntaxNode> _visitEqualsValueClause = default;
+        private Func<CSharpSyntaxRewriter, SingleVariableDesignationSyntax, SyntaxNode> _visitSingleVariableDesignation = default;
+        private Func<CSharpSyntaxRewriter, DiscardDesignationSyntax, SyntaxNode> _visitDiscardDesignation = default;
+        private Func<CSharpSyntaxRewriter, ParenthesizedVariableDesignationSyntax, SyntaxNode> _visitParenthesizedVariableDesignation = default;
+        private Func<CSharpSyntaxRewriter, ExpressionStatementSyntax, SyntaxNode> _visitExpressionStatement = default;
+        private Func<CSharpSyntaxRewriter, EmptyStatementSyntax, SyntaxNode> _visitEmptyStatement = default;
+        private Func<CSharpSyntaxRewriter, LabeledStatementSyntax, SyntaxNode> _visitLabeledStatement = default;
+        private Func<CSharpSyntaxRewriter, GotoStatementSyntax, SyntaxNode> _visitGotoStatement = default;
+        private Func<CSharpSyntaxRewriter, BreakStatementSyntax, SyntaxNode> _visitBreakStatement = default;
+        private Func<CSharpSyntaxRewriter, ContinueStatementSyntax, SyntaxNode> _visitContinueStatement = default;
+        private Func<CSharpSyntaxRewriter, ReturnStatementSyntax, SyntaxNode> _visitReturnStatement = default;
+        private Func<CSharpSyntaxRewriter, ThrowStatementSyntax, SyntaxNode> _visitThrowStatement = default;
+        private Func<CSharpSyntaxRewriter, YieldStatementSyntax, SyntaxNode> _visitYieldStatement = default;
+        private Func<CSharpSyntaxRewriter, WhileStatementSyntax, SyntaxNode> _visitWhileStatement = default;
+        private Func<CSharpSyntaxRewriter, DoStatementSyntax, SyntaxNode> _visitDoStatement = default;
+        private Func<CSharpSyntaxRewriter, ForStatementSyntax, SyntaxNode> _visitForStatement = default;
+        private Func<CSharpSyntaxRewriter, ForEachStatementSyntax, SyntaxNode> _visitForEachStatement = default;
+        private Func<CSharpSyntaxRewriter, ForEachVariableStatementSyntax, SyntaxNode> _visitForEachVariableStatement = default;
+        private Func<CSharpSyntaxRewriter, UsingStatementSyntax, SyntaxNode> _visitUsingStatement = default;
+        private Func<CSharpSyntaxRewriter, FixedStatementSyntax, SyntaxNode> _visitFixedStatement = default;
+        private Func<CSharpSyntaxRewriter, CheckedStatementSyntax, SyntaxNode> _visitCheckedStatement = default;
+        private Func<CSharpSyntaxRewriter, UnsafeStatementSyntax, SyntaxNode> _visitUnsafeStatement = default;
+        private Func<CSharpSyntaxRewriter, LockStatementSyntax, SyntaxNode> _visitLockStatement = default;
+        private Func<CSharpSyntaxRewriter, IfStatementSyntax, SyntaxNode> _visitIfStatement = default;
+        private Func<CSharpSyntaxRewriter, ElseClauseSyntax, SyntaxNode> _visitElseClause = default;
+        private Func<CSharpSyntaxRewriter, SwitchStatementSyntax, SyntaxNode> _visitSwitchStatement = default;
+        private Func<CSharpSyntaxRewriter, SwitchSectionSyntax, SyntaxNode> _visitSwitchSection = default;
+        private Func<CSharpSyntaxRewriter, CasePatternSwitchLabelSyntax, SyntaxNode> _visitCasePatternSwitchLabel = default;
+        private Func<CSharpSyntaxRewriter, CaseSwitchLabelSyntax, SyntaxNode> _visitCaseSwitchLabel = default;
+        private Func<CSharpSyntaxRewriter, DefaultSwitchLabelSyntax, SyntaxNode> _visitDefaultSwitchLabel = default;
+        private Func<CSharpSyntaxRewriter, SwitchExpressionSyntax, SyntaxNode> _visitSwitchExpression = default;
+        private Func<CSharpSyntaxRewriter, SwitchExpressionArmSyntax, SyntaxNode> _visitSwitchExpressionArm = default;
+        private Func<CSharpSyntaxRewriter, TryStatementSyntax, SyntaxNode> _visitTryStatement = default;
+        private Func<CSharpSyntaxRewriter, CatchClauseSyntax, SyntaxNode> _visitCatchClause = default;
+        private Func<CSharpSyntaxRewriter, CatchDeclarationSyntax, SyntaxNode> _visitCatchDeclaration = default;
+        private Func<CSharpSyntaxRewriter, CatchFilterClauseSyntax, SyntaxNode> _visitCatchFilterClause = default;
+        private Func<CSharpSyntaxRewriter, FinallyClauseSyntax, SyntaxNode> _visitFinallyClause = default;
+        private Func<CSharpSyntaxRewriter, CompilationUnitSyntax, SyntaxNode> _visitCompilationUnit = default;
+        private Func<CSharpSyntaxRewriter, ExternAliasDirectiveSyntax, SyntaxNode> _visitExternAliasDirective = default;
+        private Func<CSharpSyntaxRewriter, UsingDirectiveSyntax, SyntaxNode> _visitUsingDirective = default;
+        private Func<CSharpSyntaxRewriter, NamespaceDeclarationSyntax, SyntaxNode> _visitNamespaceDeclaration = default;
+        private Func<CSharpSyntaxRewriter, FileScopedNamespaceDeclarationSyntax, SyntaxNode> _visitFileScopedNamespaceDeclaration = default;
+        private Func<CSharpSyntaxRewriter, AttributeListSyntax, SyntaxNode> _visitAttributeList = default;
+        private Func<CSharpSyntaxRewriter, AttributeTargetSpecifierSyntax, SyntaxNode> _visitAttributeTargetSpecifier = default;
+        private Func<CSharpSyntaxRewriter, AttributeSyntax, SyntaxNode> _visitAttribute = default;
+        private Func<CSharpSyntaxRewriter, AttributeArgumentListSyntax, SyntaxNode> _visitAttributeArgumentList = default;
+        private Func<CSharpSyntaxRewriter, AttributeArgumentSyntax, SyntaxNode> _visitAttributeArgument = default;
+        private Func<CSharpSyntaxRewriter, NameEqualsSyntax, SyntaxNode> _visitNameEquals = default;
+        private Func<CSharpSyntaxRewriter, TypeParameterListSyntax, SyntaxNode> _visitTypeParameterList = default;
+        private Func<CSharpSyntaxRewriter, TypeParameterSyntax, SyntaxNode> _visitTypeParameter = default;
+        private Func<CSharpSyntaxRewriter, ClassDeclarationSyntax, SyntaxNode> _visitClassDeclaration = default;
+        private Func<CSharpSyntaxRewriter, StructDeclarationSyntax, SyntaxNode> _visitStructDeclaration = default;
+        private Func<CSharpSyntaxRewriter, InterfaceDeclarationSyntax, SyntaxNode> _visitInterfaceDeclaration = default;
+        private Func<CSharpSyntaxRewriter, RecordDeclarationSyntax, SyntaxNode> _visitRecordDeclaration = default;
+        private Func<CSharpSyntaxRewriter, EnumDeclarationSyntax, SyntaxNode> _visitEnumDeclaration = default;
+        private Func<CSharpSyntaxRewriter, DelegateDeclarationSyntax, SyntaxNode> _visitDelegateDeclaration = default;
+        private Func<CSharpSyntaxRewriter, EnumMemberDeclarationSyntax, SyntaxNode> _visitEnumMemberDeclaration = default;
+        private Func<CSharpSyntaxRewriter, BaseListSyntax, SyntaxNode> _visitBaseList = default;
+        private Func<CSharpSyntaxRewriter, SimpleBaseTypeSyntax, SyntaxNode> _visitSimpleBaseType = default;
+        private Func<CSharpSyntaxRewriter, PrimaryConstructorBaseTypeSyntax, SyntaxNode> _visitPrimaryConstructorBaseType = default;
+        private Func<CSharpSyntaxRewriter, TypeParameterConstraintClauseSyntax, SyntaxNode> _visitTypeParameterConstraintClause = default;
+        private Func<CSharpSyntaxRewriter, ConstructorConstraintSyntax, SyntaxNode> _visitConstructorConstraint = default;
+        private Func<CSharpSyntaxRewriter, ClassOrStructConstraintSyntax, SyntaxNode> _visitClassOrStructConstraint = default;
+        private Func<CSharpSyntaxRewriter, TypeConstraintSyntax, SyntaxNode> _visitTypeConstraint = default;
+        private Func<CSharpSyntaxRewriter, DefaultConstraintSyntax, SyntaxNode> _visitDefaultConstraint = default;
+        private Func<CSharpSyntaxRewriter, FieldDeclarationSyntax, SyntaxNode> _visitFieldDeclaration = default;
+        private Func<CSharpSyntaxRewriter, EventFieldDeclarationSyntax, SyntaxNode> _visitEventFieldDeclaration = default;
+        private Func<CSharpSyntaxRewriter, ExplicitInterfaceSpecifierSyntax, SyntaxNode> _visitExplicitInterfaceSpecifier = default;
+        private Func<CSharpSyntaxRewriter, MethodDeclarationSyntax, SyntaxNode> _visitMethodDeclaration = default;
+        private Func<CSharpSyntaxRewriter, OperatorDeclarationSyntax, SyntaxNode> _visitOperatorDeclaration = default;
+        private Func<CSharpSyntaxRewriter, ConversionOperatorDeclarationSyntax, SyntaxNode> _visitConversionOperatorDeclaration = default;
+        private Func<CSharpSyntaxRewriter, ConstructorDeclarationSyntax, SyntaxNode> _visitConstructorDeclaration = default;
+        private Func<CSharpSyntaxRewriter, ConstructorInitializerSyntax, SyntaxNode> _visitConstructorInitializer = default;
+        private Func<CSharpSyntaxRewriter, DestructorDeclarationSyntax, SyntaxNode> _visitDestructorDeclaration = default;
+        private Func<CSharpSyntaxRewriter, PropertyDeclarationSyntax, SyntaxNode> _visitPropertyDeclaration = default;
+        private Func<CSharpSyntaxRewriter, ArrowExpressionClauseSyntax, SyntaxNode> _visitArrowExpressionClause = default;
+        private Func<CSharpSyntaxRewriter, EventDeclarationSyntax, SyntaxNode> _visitEventDeclaration = default;
+        private Func<CSharpSyntaxRewriter, IndexerDeclarationSyntax, SyntaxNode> _visitIndexerDeclaration = default;
+        private Func<CSharpSyntaxRewriter, AccessorListSyntax, SyntaxNode> _visitAccessorList = default;
+        private Func<CSharpSyntaxRewriter, AccessorDeclarationSyntax, SyntaxNode> _visitAccessorDeclaration = default;
+        private Func<CSharpSyntaxRewriter, ParameterListSyntax, SyntaxNode> _visitParameterList = default;
+        private Func<CSharpSyntaxRewriter, BracketedParameterListSyntax, SyntaxNode> _visitBracketedParameterList = default;
+        private Func<CSharpSyntaxRewriter, ParameterSyntax, SyntaxNode> _visitParameter = default;
+        private Func<CSharpSyntaxRewriter, FunctionPointerParameterSyntax, SyntaxNode> _visitFunctionPointerParameter = default;
+        private Func<CSharpSyntaxRewriter, IncompleteMemberSyntax, SyntaxNode> _visitIncompleteMember = default;
+        private Func<CSharpSyntaxRewriter, SkippedTokensTriviaSyntax, SyntaxNode> _visitSkippedTokensTrivia = default;
+        private Func<CSharpSyntaxRewriter, DocumentationCommentTriviaSyntax, SyntaxNode> _visitDocumentationCommentTrivia = default;
+        private Func<CSharpSyntaxRewriter, TypeCrefSyntax, SyntaxNode> _visitTypeCref = default;
+        private Func<CSharpSyntaxRewriter, QualifiedCrefSyntax, SyntaxNode> _visitQualifiedCref = default;
+        private Func<CSharpSyntaxRewriter, NameMemberCrefSyntax, SyntaxNode> _visitNameMemberCref = default;
+        private Func<CSharpSyntaxRewriter, IndexerMemberCrefSyntax, SyntaxNode> _visitIndexerMemberCref = default;
+        private Func<CSharpSyntaxRewriter, OperatorMemberCrefSyntax, SyntaxNode> _visitOperatorMemberCref = default;
+        private Func<CSharpSyntaxRewriter, ConversionOperatorMemberCrefSyntax, SyntaxNode> _visitConversionOperatorMemberCref = default;
+        private Func<CSharpSyntaxRewriter, CrefParameterListSyntax, SyntaxNode> _visitCrefParameterList = default;
+        private Func<CSharpSyntaxRewriter, CrefBracketedParameterListSyntax, SyntaxNode> _visitCrefBracketedParameterList = default;
+        private Func<CSharpSyntaxRewriter, CrefParameterSyntax, SyntaxNode> _visitCrefParameter = default;
+        private Func<CSharpSyntaxRewriter, XmlElementSyntax, SyntaxNode> _visitXmlElement = default;
+        private Func<CSharpSyntaxRewriter, XmlElementStartTagSyntax, SyntaxNode> _visitXmlElementStartTag = default;
+        private Func<CSharpSyntaxRewriter, XmlElementEndTagSyntax, SyntaxNode> _visitXmlElementEndTag = default;
+        private Func<CSharpSyntaxRewriter, XmlEmptyElementSyntax, SyntaxNode> _visitXmlEmptyElement = default;
+        private Func<CSharpSyntaxRewriter, XmlNameSyntax, SyntaxNode> _visitXmlName = default;
+        private Func<CSharpSyntaxRewriter, XmlPrefixSyntax, SyntaxNode> _visitXmlPrefix = default;
+        private Func<CSharpSyntaxRewriter, XmlTextAttributeSyntax, SyntaxNode> _visitXmlTextAttribute = default;
+        private Func<CSharpSyntaxRewriter, XmlCrefAttributeSyntax, SyntaxNode> _visitXmlCrefAttribute = default;
+        private Func<CSharpSyntaxRewriter, XmlNameAttributeSyntax, SyntaxNode> _visitXmlNameAttribute = default;
+        private Func<CSharpSyntaxRewriter, XmlTextSyntax, SyntaxNode> _visitXmlText = default;
+        private Func<CSharpSyntaxRewriter, XmlCDataSectionSyntax, SyntaxNode> _visitXmlCDataSection = default;
+        private Func<CSharpSyntaxRewriter, XmlProcessingInstructionSyntax, SyntaxNode> _visitXmlProcessingInstruction = default;
+        private Func<CSharpSyntaxRewriter, XmlCommentSyntax, SyntaxNode> _visitXmlComment = default;
+        private Func<CSharpSyntaxRewriter, IfDirectiveTriviaSyntax, SyntaxNode> _visitIfDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, ElifDirectiveTriviaSyntax, SyntaxNode> _visitElifDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, ElseDirectiveTriviaSyntax, SyntaxNode> _visitElseDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, EndIfDirectiveTriviaSyntax, SyntaxNode> _visitEndIfDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, RegionDirectiveTriviaSyntax, SyntaxNode> _visitRegionDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, EndRegionDirectiveTriviaSyntax, SyntaxNode> _visitEndRegionDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, ErrorDirectiveTriviaSyntax, SyntaxNode> _visitErrorDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, WarningDirectiveTriviaSyntax, SyntaxNode> _visitWarningDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, BadDirectiveTriviaSyntax, SyntaxNode> _visitBadDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, DefineDirectiveTriviaSyntax, SyntaxNode> _visitDefineDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, UndefDirectiveTriviaSyntax, SyntaxNode> _visitUndefDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, LineDirectiveTriviaSyntax, SyntaxNode> _visitLineDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, LineDirectivePositionSyntax, SyntaxNode> _visitLineDirectivePosition = default;
+        private Func<CSharpSyntaxRewriter, LineSpanDirectiveTriviaSyntax, SyntaxNode> _visitLineSpanDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, PragmaWarningDirectiveTriviaSyntax, SyntaxNode> _visitPragmaWarningDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, PragmaChecksumDirectiveTriviaSyntax, SyntaxNode> _visitPragmaChecksumDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, ReferenceDirectiveTriviaSyntax, SyntaxNode> _visitReferenceDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, LoadDirectiveTriviaSyntax, SyntaxNode> _visitLoadDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, ShebangDirectiveTriviaSyntax, SyntaxNode> _visitShebangDirectiveTrivia = default;
+        private Func<CSharpSyntaxRewriter, NullableDirectiveTriviaSyntax, SyntaxNode> _visitNullableDirectiveTrivia = default;
 
         /// <summary>
         /// Set the default visit method.
@@ -358,33 +359,54 @@ namespace FluentSyntaxRewriter
         /// <summary>
         /// Sets a function to be called during list element node visits.
         /// </summary>
+        /// <typeparam name="TNode">
+        /// The type of the node to visit.
+        /// </typeparam>
         /// <param name="visitListElementNode">The function to call during list element node visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitListElementNode(Func<CSharpSyntaxRewriter, SyntaxNode, SyntaxNode> visitListElementNode = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitListElementNode<TNode>(Func<CSharpSyntaxRewriter, SyntaxNode, SyntaxNode> visitListElementNode = default)
+            where TNode : SyntaxNode
         {
-            _visitListElementNode = visitListElementNode;
+            _visitListElementNode.AddOrUpdate(
+                typeof(TNode),
+                visitListElementNode,
+                (_, __) => visitListElementNode);
             return this;
         }
 
         /// <summary>
         /// Sets a function to be called during separated list visits.
         /// </summary>
+        /// <typeparam name="TNode">
+        /// The type of the node to visit.
+        /// </typeparam>
         /// <param name="visitListSeparatedList">The function to call during separated list visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitListSeparatedList(Func<CSharpSyntaxRewriter, SeparatedSyntaxList<SyntaxNode>, SeparatedSyntaxList<SyntaxNode>> visitListSeparatedList = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitListSeparatedList<TNode>(Func<CSharpSyntaxRewriter, SeparatedSyntaxList<SyntaxNode>, SeparatedSyntaxList<SyntaxNode>> visitListSeparatedList = default)
+            where TNode : SyntaxNode
         {
-            _visitListSeparatedList = visitListSeparatedList;
+            _visitListSeparatedList.AddOrUpdate(
+                typeof(TNode),
+                visitListSeparatedList,
+                (_, __) => visitListSeparatedList);
             return this;
         }
 
         /// <summary>
         /// Sets a function to be called during list node visits.
         /// </summary>
+        /// <typeparam name="TNode">
+        /// The type of the node to visit.
+        /// </typeparam>
         /// <param name="visitListNode">The function to call during list node visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitListNode(Func<CSharpSyntaxRewriter, SyntaxList<SyntaxNode>, SyntaxList<SyntaxNode>> visitListNode = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitListNode<TNode>(Func<CSharpSyntaxRewriter, SyntaxList<SyntaxNode>, SyntaxList<SyntaxNode>> visitListNode = default)
+            where TNode : SyntaxNode
         {
-            _visitListNode = visitListNode;
+            _visitListNode.AddOrUpdate(
+                typeof(TNode),
+                visitListNode,
+                (_, __) => visitListNode);
             return this;
         }
 
@@ -415,7 +437,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitIdentifierName">The function to call during identifier name visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitIdentifierName(Func<CSharpSyntaxRewriter, IdentifierNameSyntax, IdentifierNameSyntax> visitIdentifierName = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitIdentifierName(Func<CSharpSyntaxRewriter, IdentifierNameSyntax, SyntaxNode> visitIdentifierName = default)
         {
             _visitIdentifierName = visitIdentifierName;
             return this;
@@ -426,7 +448,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitQualifiedName">The function to call during qualified name visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitQualifiedName(Func<CSharpSyntaxRewriter, QualifiedNameSyntax, QualifiedNameSyntax> visitQualifiedName = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitQualifiedName(Func<CSharpSyntaxRewriter, QualifiedNameSyntax, SyntaxNode> visitQualifiedName = default)
         {
             _visitQualifiedName = visitQualifiedName;
             return this;
@@ -437,7 +459,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitGenericName">The function to call during generic name visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitGenericName(Func<CSharpSyntaxRewriter, GenericNameSyntax, GenericNameSyntax> visitGenericName = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitGenericName(Func<CSharpSyntaxRewriter, GenericNameSyntax, SyntaxNode> visitGenericName = default)
         {
             _visitGenericName = visitGenericName;
             return this;
@@ -448,7 +470,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitTypeArgumentList">The function to call during type argument list visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitTypeArgumentList(Func<CSharpSyntaxRewriter, TypeArgumentListSyntax, TypeArgumentListSyntax> visitTypeArgumentList = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitTypeArgumentList(Func<CSharpSyntaxRewriter, TypeArgumentListSyntax, SyntaxNode> visitTypeArgumentList = default)
         {
             _visitTypeArgumentList = visitTypeArgumentList;
             return this;
@@ -459,7 +481,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitAliasQualifiedName">The function to call during alias qualified name visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitAliasQualifiedName(Func<CSharpSyntaxRewriter, AliasQualifiedNameSyntax, AliasQualifiedNameSyntax> visitAliasQualifiedName = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitAliasQualifiedName(Func<CSharpSyntaxRewriter, AliasQualifiedNameSyntax, SyntaxNode> visitAliasQualifiedName = default)
         {
             _visitAliasQualifiedName = visitAliasQualifiedName;
             return this;
@@ -470,7 +492,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitPredefinedType">The function to call during predefined type visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitPredefinedType(Func<CSharpSyntaxRewriter, PredefinedTypeSyntax, PredefinedTypeSyntax> visitPredefinedType = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitPredefinedType(Func<CSharpSyntaxRewriter, PredefinedTypeSyntax, SyntaxNode> visitPredefinedType = default)
         {
             _visitPredefinedType = visitPredefinedType;
             return this;
@@ -481,7 +503,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitArrayType">The function to call during array type visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitArrayType(Func<CSharpSyntaxRewriter, ArrayTypeSyntax, ArrayTypeSyntax> visitArrayType = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitArrayType(Func<CSharpSyntaxRewriter, ArrayTypeSyntax, SyntaxNode> visitArrayType = default)
         {
             _visitArrayType = visitArrayType;
             return this;
@@ -492,7 +514,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitArrayRankSpecifier">The function to call during array rank specifier visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitArrayRankSpecifier(Func<CSharpSyntaxRewriter, ArrayRankSpecifierSyntax, ArrayRankSpecifierSyntax> visitArrayRankSpecifier = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitArrayRankSpecifier(Func<CSharpSyntaxRewriter, ArrayRankSpecifierSyntax, SyntaxNode> visitArrayRankSpecifier = default)
         {
             _visitArrayRankSpecifier = visitArrayRankSpecifier;
             return this;
@@ -503,7 +525,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitPointerType">The function to call during pointer type visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitPointerType(Func<CSharpSyntaxRewriter, PointerTypeSyntax, PointerTypeSyntax> visitPointerType = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitPointerType(Func<CSharpSyntaxRewriter, PointerTypeSyntax, SyntaxNode> visitPointerType = default)
         {
             _visitPointerType = visitPointerType;
             return this;
@@ -514,7 +536,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitFunctionPointerType">The function to call during function pointer type visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitFunctionPointerType(Func<CSharpSyntaxRewriter, FunctionPointerTypeSyntax, FunctionPointerTypeSyntax> visitFunctionPointerType = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitFunctionPointerType(Func<CSharpSyntaxRewriter, FunctionPointerTypeSyntax, SyntaxNode> visitFunctionPointerType = default)
         {
             _visitFunctionPointerType = visitFunctionPointerType;
             return this;
@@ -525,7 +547,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitFunctionPointerParameterList">The function to call during function pointer parameter list visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitFunctionPointerParameterList(Func<CSharpSyntaxRewriter, FunctionPointerParameterListSyntax, FunctionPointerParameterListSyntax> visitFunctionPointerParameterList = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitFunctionPointerParameterList(Func<CSharpSyntaxRewriter, FunctionPointerParameterListSyntax, SyntaxNode> visitFunctionPointerParameterList = default)
         {
             _visitFunctionPointerParameterList = visitFunctionPointerParameterList;
             return this;
@@ -536,7 +558,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitFunctionPointerCallingConvention">The function to call during function pointer calling convention visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitFunctionPointerCallingConvention(Func<CSharpSyntaxRewriter, FunctionPointerCallingConventionSyntax, FunctionPointerCallingConventionSyntax> visitFunctionPointerCallingConvention = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitFunctionPointerCallingConvention(Func<CSharpSyntaxRewriter, FunctionPointerCallingConventionSyntax, SyntaxNode> visitFunctionPointerCallingConvention = default)
         {
             _visitFunctionPointerCallingConvention = visitFunctionPointerCallingConvention;
             return this;
@@ -547,7 +569,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitFunctionPointerUnmanagedCallingConventionList">The function to call during function pointer unmanaged calling convention list visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitFunctionPointerUnmanagedCallingConventionList(Func<CSharpSyntaxRewriter, FunctionPointerUnmanagedCallingConventionListSyntax, FunctionPointerUnmanagedCallingConventionListSyntax> visitFunctionPointerUnmanagedCallingConventionList = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitFunctionPointerUnmanagedCallingConventionList(Func<CSharpSyntaxRewriter, FunctionPointerUnmanagedCallingConventionListSyntax, SyntaxNode> visitFunctionPointerUnmanagedCallingConventionList = default)
         {
             _visitFunctionPointerUnmanagedCallingConventionList = visitFunctionPointerUnmanagedCallingConventionList;
             return this;
@@ -558,7 +580,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitFunctionPointerUnmanagedCallingConvention">The function to call during function pointer unmanaged calling convention visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitFunctionPointerUnmanagedCallingConvention(Func<CSharpSyntaxRewriter, FunctionPointerUnmanagedCallingConventionSyntax, FunctionPointerUnmanagedCallingConventionSyntax> visitFunctionPointerUnmanagedCallingConvention = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitFunctionPointerUnmanagedCallingConvention(Func<CSharpSyntaxRewriter, FunctionPointerUnmanagedCallingConventionSyntax, SyntaxNode> visitFunctionPointerUnmanagedCallingConvention = default)
         {
             _visitFunctionPointerUnmanagedCallingConvention = visitFunctionPointerUnmanagedCallingConvention;
             return this;
@@ -569,7 +591,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitNullableType">The function to call during nullable type visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitNullableType(Func<CSharpSyntaxRewriter, NullableTypeSyntax, NullableTypeSyntax> visitNullableType = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitNullableType(Func<CSharpSyntaxRewriter, NullableTypeSyntax, SyntaxNode> visitNullableType = default)
         {
             _visitNullableType = visitNullableType;
             return this;
@@ -580,7 +602,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitTupleType">The function to call during tuple type visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitTupleType(Func<CSharpSyntaxRewriter, TupleTypeSyntax, TupleTypeSyntax> visitTupleType = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitTupleType(Func<CSharpSyntaxRewriter, TupleTypeSyntax, SyntaxNode> visitTupleType = default)
         {
             _visitTupleType = visitTupleType;
             return this;
@@ -591,7 +613,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitTupleElement">The function to call during tuple element visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitTupleElement(Func<CSharpSyntaxRewriter, TupleElementSyntax, TupleElementSyntax> visitTupleElement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitTupleElement(Func<CSharpSyntaxRewriter, TupleElementSyntax, SyntaxNode> visitTupleElement = default)
         {
             _visitTupleElement = visitTupleElement;
             return this;
@@ -602,7 +624,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitOmittedTypeArgument">The function to call during omitted type argument visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitOmittedTypeArgument(Func<CSharpSyntaxRewriter, OmittedTypeArgumentSyntax, OmittedTypeArgumentSyntax> visitOmittedTypeArgument = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitOmittedTypeArgument(Func<CSharpSyntaxRewriter, OmittedTypeArgumentSyntax, SyntaxNode> visitOmittedTypeArgument = default)
         {
             _visitOmittedTypeArgument = visitOmittedTypeArgument;
             return this;
@@ -613,7 +635,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitRefType">The function to call during ref type visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitRefType(Func<CSharpSyntaxRewriter, RefTypeSyntax, RefTypeSyntax> visitRefType = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitRefType(Func<CSharpSyntaxRewriter, RefTypeSyntax, SyntaxNode> visitRefType = default)
         {
             _visitRefType = visitRefType;
             return this;
@@ -624,7 +646,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitScopedType">The function to call during scoped type visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitScopedType(Func<CSharpSyntaxRewriter, ScopedTypeSyntax, ScopedTypeSyntax> visitScopedType = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitScopedType(Func<CSharpSyntaxRewriter, ScopedTypeSyntax, SyntaxNode> visitScopedType = default)
         {
             _visitScopedType = visitScopedType;
             return this;
@@ -635,7 +657,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitParenthesizedExpression">The function to call during parenthesized expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitParenthesizedExpression(Func<CSharpSyntaxRewriter, ParenthesizedExpressionSyntax, ParenthesizedExpressionSyntax> visitParenthesizedExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitParenthesizedExpression(Func<CSharpSyntaxRewriter, ParenthesizedExpressionSyntax, SyntaxNode> visitParenthesizedExpression = default)
         {
             _visitParenthesizedExpression = visitParenthesizedExpression;
             return this;
@@ -646,7 +668,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitTupleExpression">The function to call during tuple expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitTupleExpression(Func<CSharpSyntaxRewriter, TupleExpressionSyntax, TupleExpressionSyntax> visitTupleExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitTupleExpression(Func<CSharpSyntaxRewriter, TupleExpressionSyntax, SyntaxNode> visitTupleExpression = default)
         {
             _visitTupleExpression = visitTupleExpression;
             return this;
@@ -657,7 +679,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitPrefixUnaryExpression">The function to call during prefix unary expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitPrefixUnaryExpression(Func<CSharpSyntaxRewriter, PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax> visitPrefixUnaryExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitPrefixUnaryExpression(Func<CSharpSyntaxRewriter, PrefixUnaryExpressionSyntax, SyntaxNode> visitPrefixUnaryExpression = default)
         {
             _visitPrefixUnaryExpression = visitPrefixUnaryExpression;
             return this;
@@ -668,7 +690,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitAwaitExpression">The function to call during await expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitAwaitExpression(Func<CSharpSyntaxRewriter, AwaitExpressionSyntax, AwaitExpressionSyntax> visitAwaitExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitAwaitExpression(Func<CSharpSyntaxRewriter, AwaitExpressionSyntax, SyntaxNode> visitAwaitExpression = default)
         {
             _visitAwaitExpression = visitAwaitExpression;
             return this;
@@ -679,7 +701,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitPostfixUnaryExpression">The function to call during postfix unary expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitPostfixUnaryExpression(Func<CSharpSyntaxRewriter, PostfixUnaryExpressionSyntax, PostfixUnaryExpressionSyntax> visitPostfixUnaryExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitPostfixUnaryExpression(Func<CSharpSyntaxRewriter, PostfixUnaryExpressionSyntax, SyntaxNode> visitPostfixUnaryExpression = default)
         {
             _visitPostfixUnaryExpression = visitPostfixUnaryExpression;
             return this;
@@ -690,7 +712,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitMemberAccessExpression">The function to call during member access expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitMemberAccessExpression(Func<CSharpSyntaxRewriter, MemberAccessExpressionSyntax, MemberAccessExpressionSyntax> visitMemberAccessExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitMemberAccessExpression(Func<CSharpSyntaxRewriter, MemberAccessExpressionSyntax, SyntaxNode> visitMemberAccessExpression = default)
         {
             _visitMemberAccessExpression = visitMemberAccessExpression;
             return this;
@@ -701,7 +723,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitConditionalAccessExpression">The function to call during conditional access expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitConditionalAccessExpression(Func<CSharpSyntaxRewriter, ConditionalAccessExpressionSyntax, ConditionalAccessExpressionSyntax> visitConditionalAccessExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitConditionalAccessExpression(Func<CSharpSyntaxRewriter, ConditionalAccessExpressionSyntax, SyntaxNode> visitConditionalAccessExpression = default)
         {
             _visitConditionalAccessExpression = visitConditionalAccessExpression;
             return this;
@@ -712,7 +734,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitMemberBindingExpression">The function to call during member binding expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitMemberBindingExpression(Func<CSharpSyntaxRewriter, MemberBindingExpressionSyntax, MemberBindingExpressionSyntax> visitMemberBindingExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitMemberBindingExpression(Func<CSharpSyntaxRewriter, MemberBindingExpressionSyntax, SyntaxNode> visitMemberBindingExpression = default)
         {
             _visitMemberBindingExpression = visitMemberBindingExpression;
             return this;
@@ -723,7 +745,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitElementBindingExpression">The function to call during element binding expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitElementBindingExpression(Func<CSharpSyntaxRewriter, ElementBindingExpressionSyntax, ElementBindingExpressionSyntax> visitElementBindingExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitElementBindingExpression(Func<CSharpSyntaxRewriter, ElementBindingExpressionSyntax, SyntaxNode> visitElementBindingExpression = default)
         {
             _visitElementBindingExpression = visitElementBindingExpression;
             return this;
@@ -734,7 +756,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitRangeExpression">The function to call during range expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitRangeExpression(Func<CSharpSyntaxRewriter, RangeExpressionSyntax, RangeExpressionSyntax> visitRangeExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitRangeExpression(Func<CSharpSyntaxRewriter, RangeExpressionSyntax, SyntaxNode> visitRangeExpression = default)
         {
             _visitRangeExpression = visitRangeExpression;
             return this;
@@ -745,7 +767,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitImplicitElementAccess">The function to call during implicit element access visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitImplicitElementAccess(Func<CSharpSyntaxRewriter, ImplicitElementAccessSyntax, ImplicitElementAccessSyntax> visitImplicitElementAccess = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitImplicitElementAccess(Func<CSharpSyntaxRewriter, ImplicitElementAccessSyntax, SyntaxNode> visitImplicitElementAccess = default)
         {
             _visitImplicitElementAccess = visitImplicitElementAccess;
             return this;
@@ -756,7 +778,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitBinaryExpression">The function to call during binary expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitBinaryExpression(Func<CSharpSyntaxRewriter, BinaryExpressionSyntax, BinaryExpressionSyntax> visitBinaryExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitBinaryExpression(Func<CSharpSyntaxRewriter, BinaryExpressionSyntax, SyntaxNode> visitBinaryExpression = default)
         {
             _visitBinaryExpression = visitBinaryExpression;
             return this;
@@ -767,7 +789,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitAssignmentExpression">The function to call during assignment expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitAssignmentExpression(Func<CSharpSyntaxRewriter, AssignmentExpressionSyntax, AssignmentExpressionSyntax> visitAssignmentExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitAssignmentExpression(Func<CSharpSyntaxRewriter, AssignmentExpressionSyntax, SyntaxNode> visitAssignmentExpression = default)
         {
             _visitAssignmentExpression = visitAssignmentExpression;
             return this;
@@ -778,7 +800,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitConditionalExpression">The function to call during conditional expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitConditionalExpression(Func<CSharpSyntaxRewriter, ConditionalExpressionSyntax, ConditionalExpressionSyntax> visitConditionalExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitConditionalExpression(Func<CSharpSyntaxRewriter, ConditionalExpressionSyntax, SyntaxNode> visitConditionalExpression = default)
         {
             _visitConditionalExpression = visitConditionalExpression;
             return this;
@@ -789,7 +811,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitThisExpression">The function to call during "this" expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitThisExpression(Func<CSharpSyntaxRewriter, ThisExpressionSyntax, ThisExpressionSyntax> visitThisExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitThisExpression(Func<CSharpSyntaxRewriter, ThisExpressionSyntax, SyntaxNode> visitThisExpression = default)
         {
             _visitThisExpression = visitThisExpression;
             return this;
@@ -800,7 +822,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitBaseExpression">The function to call during "base" expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitBaseExpression(Func<CSharpSyntaxRewriter, BaseExpressionSyntax, BaseExpressionSyntax> visitBaseExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitBaseExpression(Func<CSharpSyntaxRewriter, BaseExpressionSyntax, SyntaxNode> visitBaseExpression = default)
         {
             _visitBaseExpression = visitBaseExpression;
             return this;
@@ -811,7 +833,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitLiteralExpression">The function to call during literal expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitLiteralExpression(Func<CSharpSyntaxRewriter, LiteralExpressionSyntax, LiteralExpressionSyntax> visitLiteralExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitLiteralExpression(Func<CSharpSyntaxRewriter, LiteralExpressionSyntax, SyntaxNode> visitLiteralExpression = default)
         {
             _visitLiteralExpression = visitLiteralExpression;
             return this;
@@ -822,7 +844,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitMakeRefExpression">The function to call during make ref expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitMakeRefExpression(Func<CSharpSyntaxRewriter, MakeRefExpressionSyntax, MakeRefExpressionSyntax> visitMakeRefExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitMakeRefExpression(Func<CSharpSyntaxRewriter, MakeRefExpressionSyntax, SyntaxNode> visitMakeRefExpression = default)
         {
             _visitMakeRefExpression = visitMakeRefExpression;
             return this;
@@ -833,7 +855,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitRefTypeExpression">The function to call during ref type expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitRefTypeExpression(Func<CSharpSyntaxRewriter, RefTypeExpressionSyntax, RefTypeExpressionSyntax> visitRefTypeExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitRefTypeExpression(Func<CSharpSyntaxRewriter, RefTypeExpressionSyntax, SyntaxNode> visitRefTypeExpression = default)
         {
             _visitRefTypeExpression = visitRefTypeExpression;
             return this;
@@ -844,7 +866,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitRefValueExpression">The function to call during ref value expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitRefValueExpression(Func<CSharpSyntaxRewriter, RefValueExpressionSyntax, RefValueExpressionSyntax> visitRefValueExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitRefValueExpression(Func<CSharpSyntaxRewriter, RefValueExpressionSyntax, SyntaxNode> visitRefValueExpression = default)
         {
             _visitRefValueExpression = visitRefValueExpression;
             return this;
@@ -855,7 +877,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitCheckedExpression">The function to call during checked expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitCheckedExpression(Func<CSharpSyntaxRewriter, CheckedExpressionSyntax, CheckedExpressionSyntax> visitCheckedExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitCheckedExpression(Func<CSharpSyntaxRewriter, CheckedExpressionSyntax, SyntaxNode> visitCheckedExpression = default)
         {
             _visitCheckedExpression = visitCheckedExpression;
             return this;
@@ -866,7 +888,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitDefaultExpression">The function to call during default expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitDefaultExpression(Func<CSharpSyntaxRewriter, DefaultExpressionSyntax, DefaultExpressionSyntax> visitDefaultExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitDefaultExpression(Func<CSharpSyntaxRewriter, DefaultExpressionSyntax, SyntaxNode> visitDefaultExpression = default)
         {
             _visitDefaultExpression = visitDefaultExpression;
             return this;
@@ -877,7 +899,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitTypeOfExpression">The function to call during typeof expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitTypeOfExpression(Func<CSharpSyntaxRewriter, TypeOfExpressionSyntax, TypeOfExpressionSyntax> visitTypeOfExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitTypeOfExpression(Func<CSharpSyntaxRewriter, TypeOfExpressionSyntax, SyntaxNode> visitTypeOfExpression = default)
         {
             _visitTypeOfExpression = visitTypeOfExpression;
             return this;
@@ -888,7 +910,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitSizeOfExpression">The function to call during sizeof expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitSizeOfExpression(Func<CSharpSyntaxRewriter, SizeOfExpressionSyntax, SizeOfExpressionSyntax> visitSizeOfExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitSizeOfExpression(Func<CSharpSyntaxRewriter, SizeOfExpressionSyntax, SyntaxNode> visitSizeOfExpression = default)
         {
             _visitSizeOfExpression = visitSizeOfExpression;
             return this;
@@ -899,7 +921,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitInvocationExpression">The function to call during invocation expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitInvocationExpression(Func<CSharpSyntaxRewriter, InvocationExpressionSyntax, InvocationExpressionSyntax> visitInvocationExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitInvocationExpression(Func<CSharpSyntaxRewriter, InvocationExpressionSyntax, SyntaxNode> visitInvocationExpression = default)
         {
             _visitInvocationExpression = visitInvocationExpression;
             return this;
@@ -910,7 +932,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitElementAccessExpression">The function to call during element access expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitElementAccessExpression(Func<CSharpSyntaxRewriter, ElementAccessExpressionSyntax, ElementAccessExpressionSyntax> visitElementAccessExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitElementAccessExpression(Func<CSharpSyntaxRewriter, ElementAccessExpressionSyntax, SyntaxNode> visitElementAccessExpression = default)
         {
             _visitElementAccessExpression = visitElementAccessExpression;
             return this;
@@ -921,7 +943,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name = "visitArgumentList" > The function to call during argument list visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitArgumentList(Func<CSharpSyntaxRewriter, ArgumentListSyntax, ArgumentListSyntax> visitArgumentList = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitArgumentList(Func<CSharpSyntaxRewriter, ArgumentListSyntax, SyntaxNode> visitArgumentList = default)
         {
             _visitArgumentList = visitArgumentList;
             return this;
@@ -932,7 +954,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitBracketedArgumentList">The function to call during bracketed argument list visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitBracketedArgumentList(Func<CSharpSyntaxRewriter, BracketedArgumentListSyntax, BracketedArgumentListSyntax> visitBracketedArgumentList = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitBracketedArgumentList(Func<CSharpSyntaxRewriter, BracketedArgumentListSyntax, SyntaxNode> visitBracketedArgumentList = default)
         {
             _visitBracketedArgumentList = visitBracketedArgumentList;
             return this;
@@ -943,7 +965,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitArgument">The function to call during argument visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitArgument(Func<CSharpSyntaxRewriter, ArgumentSyntax, ArgumentSyntax> visitArgument = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitArgument(Func<CSharpSyntaxRewriter, ArgumentSyntax, SyntaxNode> visitArgument = default)
         {
             _visitArgument = visitArgument;
             return this;
@@ -954,7 +976,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitExpressionColon">The function to call during expression colon visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitExpressionColon(Func<CSharpSyntaxRewriter, ExpressionColonSyntax, ExpressionColonSyntax> visitExpressionColon = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitExpressionColon(Func<CSharpSyntaxRewriter, ExpressionColonSyntax, SyntaxNode> visitExpressionColon = default)
         {
             _visitExpressionColon = visitExpressionColon;
             return this;
@@ -965,7 +987,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitNameColon">The function to call during name colon visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitNameColon(Func<CSharpSyntaxRewriter, NameColonSyntax, NameColonSyntax> visitNameColon = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitNameColon(Func<CSharpSyntaxRewriter, NameColonSyntax, SyntaxNode> visitNameColon = default)
         {
             _visitNameColon = visitNameColon;
             return this;
@@ -976,7 +998,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitDeclarationExpression">The function to call during declaration expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitDeclarationExpression(Func<CSharpSyntaxRewriter, DeclarationExpressionSyntax, DeclarationExpressionSyntax> visitDeclarationExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitDeclarationExpression(Func<CSharpSyntaxRewriter, DeclarationExpressionSyntax, SyntaxNode> visitDeclarationExpression = default)
         {
             _visitDeclarationExpression = visitDeclarationExpression;
             return this;
@@ -987,7 +1009,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitCastExpression">The function to call during cast expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitCastExpression(Func<CSharpSyntaxRewriter, CastExpressionSyntax, CastExpressionSyntax> visitCastExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitCastExpression(Func<CSharpSyntaxRewriter, CastExpressionSyntax, SyntaxNode> visitCastExpression = default)
         {
             _visitCastExpression = visitCastExpression;
             return this;
@@ -998,7 +1020,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitAnonymousMethodExpression">The function to call during anonymous method expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitAnonymousMethodExpression(Func<CSharpSyntaxRewriter, AnonymousMethodExpressionSyntax, AnonymousMethodExpressionSyntax> visitAnonymousMethodExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitAnonymousMethodExpression(Func<CSharpSyntaxRewriter, AnonymousMethodExpressionSyntax, SyntaxNode> visitAnonymousMethodExpression = default)
         {
             _visitAnonymousMethodExpression = visitAnonymousMethodExpression;
             return this;
@@ -1009,7 +1031,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitSimpleLambdaExpression">The function to call during simple lambda expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitSimpleLambdaExpression(Func<CSharpSyntaxRewriter, SimpleLambdaExpressionSyntax, SimpleLambdaExpressionSyntax> visitSimpleLambdaExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitSimpleLambdaExpression(Func<CSharpSyntaxRewriter, SimpleLambdaExpressionSyntax, SyntaxNode> visitSimpleLambdaExpression = default)
         {
             _visitSimpleLambdaExpression = visitSimpleLambdaExpression;
             return this;
@@ -1020,7 +1042,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitRefExpression">The function to call during ref expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitRefExpression(Func<CSharpSyntaxRewriter, RefExpressionSyntax, RefExpressionSyntax> visitRefExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitRefExpression(Func<CSharpSyntaxRewriter, RefExpressionSyntax, SyntaxNode> visitRefExpression = default)
         {
             _visitRefExpression = visitRefExpression;
             return this;
@@ -1031,7 +1053,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitParenthesizedLambdaExpression">The function to call during parenthesized lambda expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitParenthesizedLambdaExpression(Func<CSharpSyntaxRewriter, ParenthesizedLambdaExpressionSyntax, ParenthesizedLambdaExpressionSyntax> visitParenthesizedLambdaExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitParenthesizedLambdaExpression(Func<CSharpSyntaxRewriter, ParenthesizedLambdaExpressionSyntax, SyntaxNode> visitParenthesizedLambdaExpression = default)
         {
             _visitParenthesizedLambdaExpression = visitParenthesizedLambdaExpression;
             return this;
@@ -1042,7 +1064,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitInitializerExpression">The function to call during initializer expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitInitializerExpression(Func<CSharpSyntaxRewriter, InitializerExpressionSyntax, InitializerExpressionSyntax> visitInitializerExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitInitializerExpression(Func<CSharpSyntaxRewriter, InitializerExpressionSyntax, SyntaxNode> visitInitializerExpression = default)
         {
             _visitInitializerExpression = visitInitializerExpression;
             return this;
@@ -1053,7 +1075,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitImplicitObjectCreationExpression">The function to call during implicit object creation expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitImplicitObjectCreationExpression(Func<CSharpSyntaxRewriter, ImplicitObjectCreationExpressionSyntax, ImplicitObjectCreationExpressionSyntax> visitImplicitObjectCreationExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitImplicitObjectCreationExpression(Func<CSharpSyntaxRewriter, ImplicitObjectCreationExpressionSyntax, SyntaxNode> visitImplicitObjectCreationExpression = default)
         {
             _visitImplicitObjectCreationExpression = visitImplicitObjectCreationExpression;
             return this;
@@ -1064,7 +1086,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitObjectCreationExpression">The function to call during object creation expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitObjectCreationExpression(Func<CSharpSyntaxRewriter, ObjectCreationExpressionSyntax, ObjectCreationExpressionSyntax> visitObjectCreationExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitObjectCreationExpression(Func<CSharpSyntaxRewriter, ObjectCreationExpressionSyntax, SyntaxNode> visitObjectCreationExpression = default)
         {
             _visitObjectCreationExpression = visitObjectCreationExpression;
             return this;
@@ -1075,7 +1097,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitWithExpression">The function to call during with expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitWithExpression(Func<CSharpSyntaxRewriter, WithExpressionSyntax, WithExpressionSyntax> visitWithExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitWithExpression(Func<CSharpSyntaxRewriter, WithExpressionSyntax, SyntaxNode> visitWithExpression = default)
         {
             _visitWithExpression = visitWithExpression;
             return this;
@@ -1086,7 +1108,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitAnonymousObjectMemberDeclarator">The function to call during anonymous object member declarator visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitAnonymousObjectMemberDeclarator(Func<CSharpSyntaxRewriter, AnonymousObjectMemberDeclaratorSyntax, AnonymousObjectMemberDeclaratorSyntax> visitAnonymousObjectMemberDeclarator = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitAnonymousObjectMemberDeclarator(Func<CSharpSyntaxRewriter, AnonymousObjectMemberDeclaratorSyntax, SyntaxNode> visitAnonymousObjectMemberDeclarator = default)
         {
             _visitAnonymousObjectMemberDeclarator = visitAnonymousObjectMemberDeclarator;
             return this;
@@ -1097,7 +1119,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitAnonymousObjectCreationExpression">The function to call during anonymous object creation expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitAnonymousObjectCreationExpression(Func<CSharpSyntaxRewriter, AnonymousObjectCreationExpressionSyntax, AnonymousObjectCreationExpressionSyntax> visitAnonymousObjectCreationExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitAnonymousObjectCreationExpression(Func<CSharpSyntaxRewriter, AnonymousObjectCreationExpressionSyntax, SyntaxNode> visitAnonymousObjectCreationExpression = default)
         {
             _visitAnonymousObjectCreationExpression = visitAnonymousObjectCreationExpression;
             return this;
@@ -1108,7 +1130,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitArrayCreationExpression">The function to call during array creation expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitArrayCreationExpression(Func<CSharpSyntaxRewriter, ArrayCreationExpressionSyntax, ArrayCreationExpressionSyntax> visitArrayCreationExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitArrayCreationExpression(Func<CSharpSyntaxRewriter, ArrayCreationExpressionSyntax, SyntaxNode> visitArrayCreationExpression = default)
         {
             _visitArrayCreationExpression = visitArrayCreationExpression;
             return this;
@@ -1121,7 +1143,7 @@ namespace FluentSyntaxRewriter
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
         public virtual FluentCSharpSyntaxRewriter
 
-         WithVisitImplicitArrayCreationExpression(Func<CSharpSyntaxRewriter, ImplicitArrayCreationExpressionSyntax, ImplicitArrayCreationExpressionSyntax> visitImplicitArrayCreationExpression = default)
+         WithVisitImplicitArrayCreationExpression(Func<CSharpSyntaxRewriter, ImplicitArrayCreationExpressionSyntax, SyntaxNode> visitImplicitArrayCreationExpression = default)
         {
             _visitImplicitArrayCreationExpression = visitImplicitArrayCreationExpression;
             return this;
@@ -1132,7 +1154,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitStackAllocArrayCreationExpression">The function to call during stack alloc array creation expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitStackAllocArrayCreationExpression(Func<CSharpSyntaxRewriter, StackAllocArrayCreationExpressionSyntax, StackAllocArrayCreationExpressionSyntax> visitStackAllocArrayCreationExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitStackAllocArrayCreationExpression(Func<CSharpSyntaxRewriter, StackAllocArrayCreationExpressionSyntax, SyntaxNode> visitStackAllocArrayCreationExpression = default)
         {
             _visitStackAllocArrayCreationExpression = visitStackAllocArrayCreationExpression;
             return this;
@@ -1143,7 +1165,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitImplicitStackAllocArrayCreationExpression">The function to call during implicit stack alloc array creation expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitImplicitStackAllocArrayCreationExpression(Func<CSharpSyntaxRewriter, ImplicitStackAllocArrayCreationExpressionSyntax, ImplicitStackAllocArrayCreationExpressionSyntax> visitImplicitStackAllocArrayCreationExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitImplicitStackAllocArrayCreationExpression(Func<CSharpSyntaxRewriter, ImplicitStackAllocArrayCreationExpressionSyntax, SyntaxNode> visitImplicitStackAllocArrayCreationExpression = default)
         {
             _visitImplicitStackAllocArrayCreationExpression = visitImplicitStackAllocArrayCreationExpression;
             return this;
@@ -1154,7 +1176,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitCollectionExpression">The function to call during collection expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitCollectionExpression(Func<CSharpSyntaxRewriter, CollectionExpressionSyntax, CollectionExpressionSyntax> visitCollectionExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitCollectionExpression(Func<CSharpSyntaxRewriter, CollectionExpressionSyntax, SyntaxNode> visitCollectionExpression = default)
         {
             _visitCollectionExpression = visitCollectionExpression;
             return this;
@@ -1165,7 +1187,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitExpressionElement">The function to call during expression element visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitExpressionElement(Func<CSharpSyntaxRewriter, ExpressionElementSyntax, ExpressionElementSyntax> visitExpressionElement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitExpressionElement(Func<CSharpSyntaxRewriter, ExpressionElementSyntax, SyntaxNode> visitExpressionElement = default)
         {
             _visitExpressionElement = visitExpressionElement;
             return this;
@@ -1176,7 +1198,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitSpreadElement">The function to call during spread element visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitSpreadElement(Func<CSharpSyntaxRewriter, SpreadElementSyntax, SpreadElementSyntax> visitSpreadElement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitSpreadElement(Func<CSharpSyntaxRewriter, SpreadElementSyntax, SyntaxNode> visitSpreadElement = default)
         {
             _visitSpreadElement = visitSpreadElement;
             return this;
@@ -1187,7 +1209,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitQueryExpression">The function to call during query expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitQueryExpression(Func<CSharpSyntaxRewriter, QueryExpressionSyntax, QueryExpressionSyntax> visitQueryExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitQueryExpression(Func<CSharpSyntaxRewriter, QueryExpressionSyntax, SyntaxNode> visitQueryExpression = default)
         {
             _visitQueryExpression = visitQueryExpression;
             return this;
@@ -1198,7 +1220,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitQueryBody">The function to call during query body visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitQueryBody(Func<CSharpSyntaxRewriter, QueryBodySyntax, QueryBodySyntax> visitQueryBody = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitQueryBody(Func<CSharpSyntaxRewriter, QueryBodySyntax, SyntaxNode> visitQueryBody = default)
         {
             _visitQueryBody = visitQueryBody;
             return this;
@@ -1209,7 +1231,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitFromClause">The function to call during from clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitFromClause(Func<CSharpSyntaxRewriter, FromClauseSyntax, FromClauseSyntax> visitFromClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitFromClause(Func<CSharpSyntaxRewriter, FromClauseSyntax, SyntaxNode> visitFromClause = default)
         {
             _visitFromClause = visitFromClause;
             return this;
@@ -1220,7 +1242,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitLetClause">The function to call during let clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitLetClause(Func<CSharpSyntaxRewriter, LetClauseSyntax, LetClauseSyntax> visitLetClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitLetClause(Func<CSharpSyntaxRewriter, LetClauseSyntax, SyntaxNode> visitLetClause = default)
         {
             _visitLetClause = visitLetClause;
             return this;
@@ -1231,7 +1253,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitJoinClause">The function to call during join clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitJoinClause(Func<CSharpSyntaxRewriter, JoinClauseSyntax, JoinClauseSyntax> visitJoinClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitJoinClause(Func<CSharpSyntaxRewriter, JoinClauseSyntax, SyntaxNode> visitJoinClause = default)
         {
             _visitJoinClause = visitJoinClause;
             return this;
@@ -1242,7 +1264,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitJoinIntoClause">The function to call during join into clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitJoinIntoClause(Func<CSharpSyntaxRewriter, JoinIntoClauseSyntax, JoinIntoClauseSyntax> visitJoinIntoClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitJoinIntoClause(Func<CSharpSyntaxRewriter, JoinIntoClauseSyntax, SyntaxNode> visitJoinIntoClause = default)
         {
             _visitJoinIntoClause = visitJoinIntoClause;
             return this;
@@ -1253,7 +1275,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitWhereClause">The function to call during where clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitWhereClause(Func<CSharpSyntaxRewriter, WhereClauseSyntax, WhereClauseSyntax> visitWhereClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitWhereClause(Func<CSharpSyntaxRewriter, WhereClauseSyntax, SyntaxNode> visitWhereClause = default)
         {
             _visitWhereClause = visitWhereClause;
             return this;
@@ -1264,7 +1286,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitOrderByClause">The function to call during order by clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitOrderByClause(Func<CSharpSyntaxRewriter, OrderByClauseSyntax, OrderByClauseSyntax> visitOrderByClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitOrderByClause(Func<CSharpSyntaxRewriter, OrderByClauseSyntax, SyntaxNode> visitOrderByClause = default)
         {
             _visitOrderByClause = visitOrderByClause;
             return this;
@@ -1275,7 +1297,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitOrdering">The function to call during ordering visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitOrdering(Func<CSharpSyntaxRewriter, OrderingSyntax, OrderingSyntax> visitOrdering = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitOrdering(Func<CSharpSyntaxRewriter, OrderingSyntax, SyntaxNode> visitOrdering = default)
         {
             _visitOrdering = visitOrdering;
             return this;
@@ -1286,7 +1308,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitSelectClause">The function to call during select clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitSelectClause(Func<CSharpSyntaxRewriter, SelectClauseSyntax, SelectClauseSyntax> visitSelectClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitSelectClause(Func<CSharpSyntaxRewriter, SelectClauseSyntax, SyntaxNode> visitSelectClause = default)
         {
             _visitSelectClause = visitSelectClause;
             return this;
@@ -1297,7 +1319,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitGroupClause">The function to call during group clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitGroupClause(Func<CSharpSyntaxRewriter, GroupClauseSyntax, GroupClauseSyntax> visitGroupClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitGroupClause(Func<CSharpSyntaxRewriter, GroupClauseSyntax, SyntaxNode> visitGroupClause = default)
         {
             _visitGroupClause = visitGroupClause;
             return this;
@@ -1308,7 +1330,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitQueryContinuation">The function to call during query continuation visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitQueryContinuation(Func<CSharpSyntaxRewriter, QueryContinuationSyntax, QueryContinuationSyntax> visitQueryContinuation = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitQueryContinuation(Func<CSharpSyntaxRewriter, QueryContinuationSyntax, SyntaxNode> visitQueryContinuation = default)
         {
             _visitQueryContinuation = visitQueryContinuation;
             return this;
@@ -1319,7 +1341,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitOmittedArraySizeExpression">The function to call during omitted array size expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitOmittedArraySizeExpression(Func<CSharpSyntaxRewriter, OmittedArraySizeExpressionSyntax, OmittedArraySizeExpressionSyntax> visitOmittedArraySizeExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitOmittedArraySizeExpression(Func<CSharpSyntaxRewriter, OmittedArraySizeExpressionSyntax, SyntaxNode> visitOmittedArraySizeExpression = default)
         {
             _visitOmittedArraySizeExpression = visitOmittedArraySizeExpression;
             return this;
@@ -1330,7 +1352,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitInterpolatedStringExpression">The function to call during interpolated string expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitInterpolatedStringExpression(Func<CSharpSyntaxRewriter, InterpolatedStringExpressionSyntax, InterpolatedStringExpressionSyntax> visitInterpolatedStringExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitInterpolatedStringExpression(Func<CSharpSyntaxRewriter, InterpolatedStringExpressionSyntax, SyntaxNode> visitInterpolatedStringExpression = default)
         {
             _visitInterpolatedStringExpression = visitInterpolatedStringExpression;
             return this;
@@ -1341,7 +1363,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitIsPatternExpression">The function to call during is pattern expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitIsPatternExpression(Func<CSharpSyntaxRewriter, IsPatternExpressionSyntax, IsPatternExpressionSyntax> visitIsPatternExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitIsPatternExpression(Func<CSharpSyntaxRewriter, IsPatternExpressionSyntax, SyntaxNode> visitIsPatternExpression = default)
         {
             _visitIsPatternExpression = visitIsPatternExpression;
             return this;
@@ -1352,7 +1374,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitThrowExpression">The function to call during throw expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitThrowExpression(Func<CSharpSyntaxRewriter, ThrowExpressionSyntax, ThrowExpressionSyntax> visitThrowExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitThrowExpression(Func<CSharpSyntaxRewriter, ThrowExpressionSyntax, SyntaxNode> visitThrowExpression = default)
         {
             _visitThrowExpression = visitThrowExpression;
             return this;
@@ -1363,7 +1385,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitWhenClause">The function to call during when clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitWhenClause(Func<CSharpSyntaxRewriter, WhenClauseSyntax, WhenClauseSyntax> visitWhenClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitWhenClause(Func<CSharpSyntaxRewriter, WhenClauseSyntax, SyntaxNode> visitWhenClause = default)
         {
             _visitWhenClause = visitWhenClause;
             return this;
@@ -1374,7 +1396,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitDiscardPattern">The function to call during discard pattern visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitDiscardPattern(Func<CSharpSyntaxRewriter, DiscardPatternSyntax, DiscardPatternSyntax> visitDiscardPattern = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitDiscardPattern(Func<CSharpSyntaxRewriter, DiscardPatternSyntax, SyntaxNode> visitDiscardPattern = default)
         {
             _visitDiscardPattern = visitDiscardPattern;
             return this;
@@ -1385,7 +1407,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitDeclarationPattern">The function to call during declaration pattern visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitDeclarationPattern(Func<CSharpSyntaxRewriter, DeclarationPatternSyntax, DeclarationPatternSyntax> visitDeclarationPattern = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitDeclarationPattern(Func<CSharpSyntaxRewriter, DeclarationPatternSyntax, SyntaxNode> visitDeclarationPattern = default)
         {
             _visitDeclarationPattern = visitDeclarationPattern;
             return this;
@@ -1396,7 +1418,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitVarPattern">The function to call during var pattern visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitVarPattern(Func<CSharpSyntaxRewriter, VarPatternSyntax, VarPatternSyntax> visitVarPattern = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitVarPattern(Func<CSharpSyntaxRewriter, VarPatternSyntax, SyntaxNode> visitVarPattern = default)
         {
             _visitVarPattern = visitVarPattern;
             return this;
@@ -1407,7 +1429,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitRecursivePattern">The function to call during recursive pattern visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitRecursivePattern(Func<CSharpSyntaxRewriter, RecursivePatternSyntax, RecursivePatternSyntax> visitRecursivePattern = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitRecursivePattern(Func<CSharpSyntaxRewriter, RecursivePatternSyntax, SyntaxNode> visitRecursivePattern = default)
         {
             _visitRecursivePattern = visitRecursivePattern;
             return this;
@@ -1418,7 +1440,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitPositionalPatternClause">The function to call during positional pattern clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitPositionalPatternClause(Func<CSharpSyntaxRewriter, PositionalPatternClauseSyntax, PositionalPatternClauseSyntax> visitPositionalPatternClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitPositionalPatternClause(Func<CSharpSyntaxRewriter, PositionalPatternClauseSyntax, SyntaxNode> visitPositionalPatternClause = default)
         {
             _visitPositionalPatternClause = visitPositionalPatternClause;
             return this;
@@ -1429,7 +1451,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitPropertyPatternClause">The function to call during property pattern clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitPropertyPatternClause(Func<CSharpSyntaxRewriter, PropertyPatternClauseSyntax, PropertyPatternClauseSyntax> visitPropertyPatternClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitPropertyPatternClause(Func<CSharpSyntaxRewriter, PropertyPatternClauseSyntax, SyntaxNode> visitPropertyPatternClause = default)
         {
             _visitPropertyPatternClause = visitPropertyPatternClause;
             return this;
@@ -1440,7 +1462,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitSubpattern">The function to call during subpattern visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitSubpattern(Func<CSharpSyntaxRewriter, SubpatternSyntax, SubpatternSyntax> visitSubpattern = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitSubpattern(Func<CSharpSyntaxRewriter, SubpatternSyntax, SyntaxNode> visitSubpattern = default)
         {
             _visitSubpattern = visitSubpattern;
             return this;
@@ -1451,7 +1473,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitConstantPattern">The function to call during constant pattern visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitConstantPattern(Func<CSharpSyntaxRewriter, ConstantPatternSyntax, ConstantPatternSyntax> visitConstantPattern = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitConstantPattern(Func<CSharpSyntaxRewriter, ConstantPatternSyntax, SyntaxNode> visitConstantPattern = default)
         {
             _visitConstantPattern = visitConstantPattern;
             return this;
@@ -1462,7 +1484,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitParenthesizedPattern">The function to call during parenthesized pattern visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitParenthesizedPattern(Func<CSharpSyntaxRewriter, ParenthesizedPatternSyntax, ParenthesizedPatternSyntax> visitParenthesizedPattern = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitParenthesizedPattern(Func<CSharpSyntaxRewriter, ParenthesizedPatternSyntax, SyntaxNode> visitParenthesizedPattern = default)
         {
             _visitParenthesizedPattern = visitParenthesizedPattern;
             return this;
@@ -1473,7 +1495,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitRelationalPattern">The function to call during relational pattern visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitRelationalPattern(Func<CSharpSyntaxRewriter, RelationalPatternSyntax, RelationalPatternSyntax> visitRelationalPattern = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitRelationalPattern(Func<CSharpSyntaxRewriter, RelationalPatternSyntax, SyntaxNode> visitRelationalPattern = default)
         {
             _visitRelationalPattern = visitRelationalPattern;
             return this;
@@ -1484,7 +1506,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitTypePattern">The function to call during type pattern visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitTypePattern(Func<CSharpSyntaxRewriter, TypePatternSyntax, TypePatternSyntax> visitTypePattern = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitTypePattern(Func<CSharpSyntaxRewriter, TypePatternSyntax, SyntaxNode> visitTypePattern = default)
         {
             _visitTypePattern = visitTypePattern;
             return this;
@@ -1495,7 +1517,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitBinaryPattern">The function to call during binary pattern visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitBinaryPattern(Func<CSharpSyntaxRewriter, BinaryPatternSyntax, BinaryPatternSyntax> visitBinaryPattern = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitBinaryPattern(Func<CSharpSyntaxRewriter, BinaryPatternSyntax, SyntaxNode> visitBinaryPattern = default)
         {
             _visitBinaryPattern = visitBinaryPattern;
             return this;
@@ -1506,7 +1528,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitUnaryPattern">The function to call during unary pattern visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitUnaryPattern(Func<CSharpSyntaxRewriter, UnaryPatternSyntax, UnaryPatternSyntax> visitUnaryPattern = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitUnaryPattern(Func<CSharpSyntaxRewriter, UnaryPatternSyntax, SyntaxNode> visitUnaryPattern = default)
         {
             _visitUnaryPattern = visitUnaryPattern;
             return this;
@@ -1517,7 +1539,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitListPattern">The function to call during list pattern visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitListPattern(Func<CSharpSyntaxRewriter, ListPatternSyntax, ListPatternSyntax> visitListPattern = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitListPattern(Func<CSharpSyntaxRewriter, ListPatternSyntax, SyntaxNode> visitListPattern = default)
         {
             _visitListPattern = visitListPattern;
             return this;
@@ -1528,7 +1550,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitSlicePattern">The function to call during slice pattern visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitSlicePattern(Func<CSharpSyntaxRewriter, SlicePatternSyntax, SlicePatternSyntax> visitSlicePattern = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitSlicePattern(Func<CSharpSyntaxRewriter, SlicePatternSyntax, SyntaxNode> visitSlicePattern = default)
         {
             _visitSlicePattern = visitSlicePattern;
             return this;
@@ -1539,7 +1561,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitInterpolatedStringText">The function to call during interpolated string text visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitInterpolatedStringText(Func<CSharpSyntaxRewriter, InterpolatedStringTextSyntax, InterpolatedStringTextSyntax> visitInterpolatedStringText = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitInterpolatedStringText(Func<CSharpSyntaxRewriter, InterpolatedStringTextSyntax, SyntaxNode> visitInterpolatedStringText = default)
         {
             _visitInterpolatedStringText = visitInterpolatedStringText;
             return this;
@@ -1550,7 +1572,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitInterpolation">The function to call during interpolation visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitInterpolation(Func<CSharpSyntaxRewriter, InterpolationSyntax, InterpolationSyntax> visitInterpolation = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitInterpolation(Func<CSharpSyntaxRewriter, InterpolationSyntax, SyntaxNode> visitInterpolation = default)
         {
             _visitInterpolation = visitInterpolation;
             return this;
@@ -1561,7 +1583,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitInterpolationAlignmentClause">The function to call during interpolation alignment clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitInterpolationAlignmentClause(Func<CSharpSyntaxRewriter, InterpolationAlignmentClauseSyntax, InterpolationAlignmentClauseSyntax> visitInterpolationAlignmentClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitInterpolationAlignmentClause(Func<CSharpSyntaxRewriter, InterpolationAlignmentClauseSyntax, SyntaxNode> visitInterpolationAlignmentClause = default)
         {
             _visitInterpolationAlignmentClause = visitInterpolationAlignmentClause;
             return this;
@@ -1572,7 +1594,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitInterpolationFormatClause">The function to call during interpolation format clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitInterpolationFormatClause(Func<CSharpSyntaxRewriter, InterpolationFormatClauseSyntax, InterpolationFormatClauseSyntax> visitInterpolationFormatClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitInterpolationFormatClause(Func<CSharpSyntaxRewriter, InterpolationFormatClauseSyntax, SyntaxNode> visitInterpolationFormatClause = default)
         {
             _visitInterpolationFormatClause = visitInterpolationFormatClause;
             return this;
@@ -1583,7 +1605,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitGlobalStatement">The function to call during global statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitGlobalStatement(Func<CSharpSyntaxRewriter, GlobalStatementSyntax, GlobalStatementSyntax> visitGlobalStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitGlobalStatement(Func<CSharpSyntaxRewriter, GlobalStatementSyntax, SyntaxNode> visitGlobalStatement = default)
         {
             _visitGlobalStatement = visitGlobalStatement;
             return this;
@@ -1594,7 +1616,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitBlock">The function to call during block visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitBlock(Func<CSharpSyntaxRewriter, BlockSyntax, BlockSyntax> visitBlock = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitBlock(Func<CSharpSyntaxRewriter, BlockSyntax, SyntaxNode> visitBlock = default)
         {
             _visitBlock = visitBlock;
             return this;
@@ -1605,7 +1627,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitLocalFunctionStatement">The function to call during local function statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitLocalFunctionStatement(Func<CSharpSyntaxRewriter, LocalFunctionStatementSyntax, LocalFunctionStatementSyntax> visitLocalFunctionStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitLocalFunctionStatement(Func<CSharpSyntaxRewriter, LocalFunctionStatementSyntax, SyntaxNode> visitLocalFunctionStatement = default)
         {
             _visitLocalFunctionStatement = visitLocalFunctionStatement;
             return this;
@@ -1616,7 +1638,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitLocalDeclarationStatement">The function to call during local declaration statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitLocalDeclarationStatement(Func<CSharpSyntaxRewriter, LocalDeclarationStatementSyntax, LocalDeclarationStatementSyntax> visitLocalDeclarationStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitLocalDeclarationStatement(Func<CSharpSyntaxRewriter, LocalDeclarationStatementSyntax, SyntaxNode> visitLocalDeclarationStatement = default)
         {
             _visitLocalDeclarationStatement = visitLocalDeclarationStatement;
             return this;
@@ -1627,7 +1649,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitVariableDeclaration">The function to call during variable declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitVariableDeclaration(Func<CSharpSyntaxRewriter, VariableDeclarationSyntax, VariableDeclarationSyntax> visitVariableDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitVariableDeclaration(Func<CSharpSyntaxRewriter, VariableDeclarationSyntax, SyntaxNode> visitVariableDeclaration = default)
         {
             _visitVariableDeclaration = visitVariableDeclaration;
             return this;
@@ -1638,7 +1660,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitVariableDeclarator">The function to call during variable declarator visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitVariableDeclarator(Func<CSharpSyntaxRewriter, VariableDeclaratorSyntax, VariableDeclaratorSyntax> visitVariableDeclarator = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitVariableDeclarator(Func<CSharpSyntaxRewriter, VariableDeclaratorSyntax, SyntaxNode> visitVariableDeclarator = default)
         {
             _visitVariableDeclarator = visitVariableDeclarator;
             return this;
@@ -1649,7 +1671,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitEqualsValueClause">The function to call during equals value clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitEqualsValueClause(Func<CSharpSyntaxRewriter, EqualsValueClauseSyntax, EqualsValueClauseSyntax> visitEqualsValueClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitEqualsValueClause(Func<CSharpSyntaxRewriter, EqualsValueClauseSyntax, SyntaxNode> visitEqualsValueClause = default)
         {
             _visitEqualsValueClause = visitEqualsValueClause;
             return this;
@@ -1660,7 +1682,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitSingleVariableDesignation">The function to call during single variable designation visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitSingleVariableDesignation(Func<CSharpSyntaxRewriter, SingleVariableDesignationSyntax, SingleVariableDesignationSyntax> visitSingleVariableDesignation = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitSingleVariableDesignation(Func<CSharpSyntaxRewriter, SingleVariableDesignationSyntax, SyntaxNode> visitSingleVariableDesignation = default)
         {
             _visitSingleVariableDesignation = visitSingleVariableDesignation;
             return this;
@@ -1671,7 +1693,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitDiscardDesignation">The function to call during discard designation visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitDiscardDesignation(Func<CSharpSyntaxRewriter, DiscardDesignationSyntax, DiscardDesignationSyntax> visitDiscardDesignation = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitDiscardDesignation(Func<CSharpSyntaxRewriter, DiscardDesignationSyntax, SyntaxNode> visitDiscardDesignation = default)
         {
             _visitDiscardDesignation = visitDiscardDesignation;
             return this;
@@ -1682,7 +1704,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitParenthesizedVariableDesignation">The function to call during parenthesized variable designation visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitParenthesizedVariableDesignation(Func<CSharpSyntaxRewriter, ParenthesizedVariableDesignationSyntax, ParenthesizedVariableDesignationSyntax> visitParenthesizedVariableDesignation = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitParenthesizedVariableDesignation(Func<CSharpSyntaxRewriter, ParenthesizedVariableDesignationSyntax, SyntaxNode> visitParenthesizedVariableDesignation = default)
         {
             _visitParenthesizedVariableDesignation = visitParenthesizedVariableDesignation;
             return this;
@@ -1693,7 +1715,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitExpressionStatement">The function to call during expression statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitExpressionStatement(Func<CSharpSyntaxRewriter, ExpressionStatementSyntax, ExpressionStatementSyntax> visitExpressionStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitExpressionStatement(Func<CSharpSyntaxRewriter, ExpressionStatementSyntax, SyntaxNode> visitExpressionStatement = default)
         {
             _visitExpressionStatement = visitExpressionStatement;
             return this;
@@ -1704,7 +1726,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitEmptyStatement">The function to call during empty statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitEmptyStatement(Func<CSharpSyntaxRewriter, EmptyStatementSyntax, EmptyStatementSyntax> visitEmptyStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitEmptyStatement(Func<CSharpSyntaxRewriter, EmptyStatementSyntax, SyntaxNode> visitEmptyStatement = default)
         {
             _visitEmptyStatement = visitEmptyStatement;
             return this;
@@ -1715,7 +1737,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitLabeledStatement">The function to call during labeled statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitLabeledStatement(Func<CSharpSyntaxRewriter, LabeledStatementSyntax, LabeledStatementSyntax> visitLabeledStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitLabeledStatement(Func<CSharpSyntaxRewriter, LabeledStatementSyntax, SyntaxNode> visitLabeledStatement = default)
         {
             _visitLabeledStatement = visitLabeledStatement;
             return this;
@@ -1726,7 +1748,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitGotoStatement">The function to call during goto statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitGotoStatement(Func<CSharpSyntaxRewriter, GotoStatementSyntax, GotoStatementSyntax> visitGotoStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitGotoStatement(Func<CSharpSyntaxRewriter, GotoStatementSyntax, SyntaxNode> visitGotoStatement = default)
         {
             _visitGotoStatement = visitGotoStatement;
             return this;
@@ -1737,7 +1759,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitBreakStatement">The function to call during break statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitBreakStatement(Func<CSharpSyntaxRewriter, BreakStatementSyntax, BreakStatementSyntax> visitBreakStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitBreakStatement(Func<CSharpSyntaxRewriter, BreakStatementSyntax, SyntaxNode> visitBreakStatement = default)
         {
             _visitBreakStatement = visitBreakStatement;
             return this;
@@ -1748,7 +1770,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitContinueStatement">The function to call during continue statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitContinueStatement(Func<CSharpSyntaxRewriter, ContinueStatementSyntax, ContinueStatementSyntax> visitContinueStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitContinueStatement(Func<CSharpSyntaxRewriter, ContinueStatementSyntax, SyntaxNode> visitContinueStatement = default)
         {
             _visitContinueStatement = visitContinueStatement;
             return this;
@@ -1759,7 +1781,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitReturnStatement">The function to call during return statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitReturnStatement(Func<CSharpSyntaxRewriter, ReturnStatementSyntax, ReturnStatementSyntax> visitReturnStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitReturnStatement(Func<CSharpSyntaxRewriter, ReturnStatementSyntax, SyntaxNode> visitReturnStatement = default)
         {
             _visitReturnStatement = visitReturnStatement;
             return this;
@@ -1770,7 +1792,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitThrowStatement">The function to call during throw statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitThrowStatement(Func<CSharpSyntaxRewriter, ThrowStatementSyntax, ThrowStatementSyntax> visitThrowStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitThrowStatement(Func<CSharpSyntaxRewriter, ThrowStatementSyntax, SyntaxNode> visitThrowStatement = default)
         {
             _visitThrowStatement = visitThrowStatement;
             return this;
@@ -1781,7 +1803,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitYieldStatement">The function to call during yield statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitYieldStatement(Func<CSharpSyntaxRewriter, YieldStatementSyntax, YieldStatementSyntax> visitYieldStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitYieldStatement(Func<CSharpSyntaxRewriter, YieldStatementSyntax, SyntaxNode> visitYieldStatement = default)
         {
             _visitYieldStatement = visitYieldStatement;
             return this;
@@ -1792,7 +1814,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitWhileStatement">The function to call during while statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitWhileStatement(Func<CSharpSyntaxRewriter, WhileStatementSyntax, WhileStatementSyntax> visitWhileStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitWhileStatement(Func<CSharpSyntaxRewriter, WhileStatementSyntax, SyntaxNode> visitWhileStatement = default)
         {
             _visitWhileStatement = visitWhileStatement;
             return this;
@@ -1803,7 +1825,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitDoStatement">The function to call during do statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitDoStatement(Func<CSharpSyntaxRewriter, DoStatementSyntax, DoStatementSyntax> visitDoStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitDoStatement(Func<CSharpSyntaxRewriter, DoStatementSyntax, SyntaxNode> visitDoStatement = default)
         {
             _visitDoStatement = visitDoStatement;
             return this;
@@ -1814,7 +1836,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitForStatement">The function to call during for statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitForStatement(Func<CSharpSyntaxRewriter, ForStatementSyntax, ForStatementSyntax> visitForStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitForStatement(Func<CSharpSyntaxRewriter, ForStatementSyntax, SyntaxNode> visitForStatement = default)
         {
             _visitForStatement = visitForStatement;
             return this;
@@ -1825,7 +1847,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitForEachStatement">The function to call during foreach statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitForEachStatement(Func<CSharpSyntaxRewriter, ForEachStatementSyntax, ForEachStatementSyntax> visitForEachStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitForEachStatement(Func<CSharpSyntaxRewriter, ForEachStatementSyntax, SyntaxNode> visitForEachStatement = default)
         {
             _visitForEachStatement = visitForEachStatement;
             return this;
@@ -1836,7 +1858,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitForEachVariableStatement">The function to call during foreach variable statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitForEachVariableStatement(Func<CSharpSyntaxRewriter, ForEachVariableStatementSyntax, ForEachVariableStatementSyntax> visitForEachVariableStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitForEachVariableStatement(Func<CSharpSyntaxRewriter, ForEachVariableStatementSyntax, SyntaxNode> visitForEachVariableStatement = default)
         {
             _visitForEachVariableStatement = visitForEachVariableStatement;
             return this;
@@ -1847,7 +1869,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitUsingStatement">The function to call during using statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitUsingStatement(Func<CSharpSyntaxRewriter, UsingStatementSyntax, UsingStatementSyntax> visitUsingStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitUsingStatement(Func<CSharpSyntaxRewriter, UsingStatementSyntax, SyntaxNode> visitUsingStatement = default)
         {
             _visitUsingStatement = visitUsingStatement;
             return this;
@@ -1858,7 +1880,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitFixedStatement">The function to call during fixed statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitFixedStatement(Func<CSharpSyntaxRewriter, FixedStatementSyntax, FixedStatementSyntax> visitFixedStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitFixedStatement(Func<CSharpSyntaxRewriter, FixedStatementSyntax, SyntaxNode> visitFixedStatement = default)
         {
             _visitFixedStatement = visitFixedStatement;
             return this;
@@ -1869,7 +1891,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitCheckedStatement">The function to call during checked statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitCheckedStatement(Func<CSharpSyntaxRewriter, CheckedStatementSyntax, CheckedStatementSyntax> visitCheckedStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitCheckedStatement(Func<CSharpSyntaxRewriter, CheckedStatementSyntax, SyntaxNode> visitCheckedStatement = default)
         {
             _visitCheckedStatement = visitCheckedStatement;
             return this;
@@ -1880,7 +1902,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitUnsafeStatement">The function to call during unsafe statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitUnsafeStatement(Func<CSharpSyntaxRewriter, UnsafeStatementSyntax, UnsafeStatementSyntax> visitUnsafeStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitUnsafeStatement(Func<CSharpSyntaxRewriter, UnsafeStatementSyntax, SyntaxNode> visitUnsafeStatement = default)
         {
             _visitUnsafeStatement = visitUnsafeStatement;
             return this;
@@ -1891,7 +1913,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitLockStatement">The function to call during lock statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitLockStatement(Func<CSharpSyntaxRewriter, LockStatementSyntax, LockStatementSyntax> visitLockStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitLockStatement(Func<CSharpSyntaxRewriter, LockStatementSyntax, SyntaxNode> visitLockStatement = default)
         {
             _visitLockStatement = visitLockStatement;
             return this;
@@ -1902,7 +1924,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitIfStatement">The function to call during if statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitIfStatement(Func<CSharpSyntaxRewriter, IfStatementSyntax, IfStatementSyntax> visitIfStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitIfStatement(Func<CSharpSyntaxRewriter, IfStatementSyntax, SyntaxNode> visitIfStatement = default)
         {
             _visitIfStatement = visitIfStatement;
             return this;
@@ -1913,7 +1935,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitElseClause">The function to call during else clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitElseClause(Func<CSharpSyntaxRewriter, ElseClauseSyntax, ElseClauseSyntax> visitElseClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitElseClause(Func<CSharpSyntaxRewriter, ElseClauseSyntax, SyntaxNode> visitElseClause = default)
         {
             _visitElseClause = visitElseClause;
             return this;
@@ -1924,7 +1946,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitSwitchStatement">The function to call during switch statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitSwitchStatement(Func<CSharpSyntaxRewriter, SwitchStatementSyntax, SwitchStatementSyntax> visitSwitchStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitSwitchStatement(Func<CSharpSyntaxRewriter, SwitchStatementSyntax, SyntaxNode> visitSwitchStatement = default)
         {
             _visitSwitchStatement = visitSwitchStatement;
             return this;
@@ -1935,7 +1957,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitSwitchSection">The function to call during switch section visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitSwitchSection(Func<CSharpSyntaxRewriter, SwitchSectionSyntax, SwitchSectionSyntax> visitSwitchSection = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitSwitchSection(Func<CSharpSyntaxRewriter, SwitchSectionSyntax, SyntaxNode> visitSwitchSection = default)
         {
             _visitSwitchSection = visitSwitchSection;
             return this;
@@ -1946,7 +1968,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitCasePatternSwitchLabel">The function to call during case pattern switch label visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitCasePatternSwitchLabel(Func<CSharpSyntaxRewriter, CasePatternSwitchLabelSyntax, CasePatternSwitchLabelSyntax> visitCasePatternSwitchLabel = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitCasePatternSwitchLabel(Func<CSharpSyntaxRewriter, CasePatternSwitchLabelSyntax, SyntaxNode> visitCasePatternSwitchLabel = default)
         {
             _visitCasePatternSwitchLabel = visitCasePatternSwitchLabel;
             return this;
@@ -1957,7 +1979,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitCaseSwitchLabel">The function to call during case switch label visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitCaseSwitchLabel(Func<CSharpSyntaxRewriter, CaseSwitchLabelSyntax, CaseSwitchLabelSyntax> visitCaseSwitchLabel = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitCaseSwitchLabel(Func<CSharpSyntaxRewriter, CaseSwitchLabelSyntax, SyntaxNode> visitCaseSwitchLabel = default)
         {
             _visitCaseSwitchLabel = visitCaseSwitchLabel;
             return this;
@@ -1968,7 +1990,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitDefaultSwitchLabel">The function to call during default switch label visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitDefaultSwitchLabel(Func<CSharpSyntaxRewriter, DefaultSwitchLabelSyntax, DefaultSwitchLabelSyntax> visitDefaultSwitchLabel = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitDefaultSwitchLabel(Func<CSharpSyntaxRewriter, DefaultSwitchLabelSyntax, SyntaxNode> visitDefaultSwitchLabel = default)
         {
             _visitDefaultSwitchLabel = visitDefaultSwitchLabel;
             return this;
@@ -1979,7 +2001,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitSwitchExpression">The function to call during switch expression visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitSwitchExpression(Func<CSharpSyntaxRewriter, SwitchExpressionSyntax, SwitchExpressionSyntax> visitSwitchExpression = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitSwitchExpression(Func<CSharpSyntaxRewriter, SwitchExpressionSyntax, SyntaxNode> visitSwitchExpression = default)
         {
             _visitSwitchExpression = visitSwitchExpression;
             return this;
@@ -1990,7 +2012,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitSwitchExpressionArm">The function to call during switch expression arm visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitSwitchExpressionArm(Func<CSharpSyntaxRewriter, SwitchExpressionArmSyntax, SwitchExpressionArmSyntax> visitSwitchExpressionArm = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitSwitchExpressionArm(Func<CSharpSyntaxRewriter, SwitchExpressionArmSyntax, SyntaxNode> visitSwitchExpressionArm = default)
         {
             _visitSwitchExpressionArm = visitSwitchExpressionArm;
             return this;
@@ -2001,7 +2023,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitTryStatement">The function to call during try statement visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitTryStatement(Func<CSharpSyntaxRewriter, TryStatementSyntax, TryStatementSyntax> visitTryStatement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitTryStatement(Func<CSharpSyntaxRewriter, TryStatementSyntax, SyntaxNode> visitTryStatement = default)
         {
             _visitTryStatement = visitTryStatement;
             return this;
@@ -2012,7 +2034,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitCatchClause">The function to call during catch clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitCatchClause(Func<CSharpSyntaxRewriter, CatchClauseSyntax, CatchClauseSyntax> visitCatchClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitCatchClause(Func<CSharpSyntaxRewriter, CatchClauseSyntax, SyntaxNode> visitCatchClause = default)
         {
             _visitCatchClause = visitCatchClause;
             return this;
@@ -2023,7 +2045,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitCatchDeclaration">The function to call during catch declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitCatchDeclaration(Func<CSharpSyntaxRewriter, CatchDeclarationSyntax, CatchDeclarationSyntax> visitCatchDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitCatchDeclaration(Func<CSharpSyntaxRewriter, CatchDeclarationSyntax, SyntaxNode> visitCatchDeclaration = default)
         {
             _visitCatchDeclaration = visitCatchDeclaration;
             return this;
@@ -2034,7 +2056,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitCatchFilterClause">The function to call during catch filter clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitCatchFilterClause(Func<CSharpSyntaxRewriter, CatchFilterClauseSyntax, CatchFilterClauseSyntax> visitCatchFilterClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitCatchFilterClause(Func<CSharpSyntaxRewriter, CatchFilterClauseSyntax, SyntaxNode> visitCatchFilterClause = default)
         {
             _visitCatchFilterClause = visitCatchFilterClause;
             return this;
@@ -2045,7 +2067,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitFinallyClause">The function to call during finally clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitFinallyClause(Func<CSharpSyntaxRewriter, FinallyClauseSyntax, FinallyClauseSyntax> visitFinallyClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitFinallyClause(Func<CSharpSyntaxRewriter, FinallyClauseSyntax, SyntaxNode> visitFinallyClause = default)
         {
             _visitFinallyClause = visitFinallyClause;
             return this;
@@ -2056,7 +2078,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitCompilationUnit">The function to call during compilation unit visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitCompilationUnit(Func<CSharpSyntaxRewriter, CompilationUnitSyntax, CompilationUnitSyntax> visitCompilationUnit = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitCompilationUnit(Func<CSharpSyntaxRewriter, CompilationUnitSyntax, SyntaxNode> visitCompilationUnit = default)
         {
             _visitCompilationUnit = visitCompilationUnit;
             return this;
@@ -2067,7 +2089,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitExternAliasDirective">The function to call during extern alias directive visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitExternAliasDirective(Func<CSharpSyntaxRewriter, ExternAliasDirectiveSyntax, ExternAliasDirectiveSyntax> visitExternAliasDirective = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitExternAliasDirective(Func<CSharpSyntaxRewriter, ExternAliasDirectiveSyntax, SyntaxNode> visitExternAliasDirective = default)
         {
             _visitExternAliasDirective = visitExternAliasDirective;
             return this;
@@ -2078,7 +2100,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitUsingDirective">The function to call during using directive visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitUsingDirective(Func<CSharpSyntaxRewriter, UsingDirectiveSyntax, UsingDirectiveSyntax> visitUsingDirective = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitUsingDirective(Func<CSharpSyntaxRewriter, UsingDirectiveSyntax, SyntaxNode> visitUsingDirective = default)
         {
             _visitUsingDirective = visitUsingDirective;
             return this;
@@ -2089,7 +2111,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitNamespaceDeclaration">The function to call during namespace declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitNamespaceDeclaration(Func<CSharpSyntaxRewriter, NamespaceDeclarationSyntax, NamespaceDeclarationSyntax> visitNamespaceDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitNamespaceDeclaration(Func<CSharpSyntaxRewriter, NamespaceDeclarationSyntax, SyntaxNode> visitNamespaceDeclaration = default)
         {
             _visitNamespaceDeclaration = visitNamespaceDeclaration;
             return this;
@@ -2100,7 +2122,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitFileScopedNamespaceDeclaration">The function to call during file scoped namespace declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitFileScopedNamespaceDeclaration(Func<CSharpSyntaxRewriter, FileScopedNamespaceDeclarationSyntax, FileScopedNamespaceDeclarationSyntax> visitFileScopedNamespaceDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitFileScopedNamespaceDeclaration(Func<CSharpSyntaxRewriter, FileScopedNamespaceDeclarationSyntax, SyntaxNode> visitFileScopedNamespaceDeclaration = default)
         {
             _visitFileScopedNamespaceDeclaration = visitFileScopedNamespaceDeclaration;
             return this;
@@ -2111,7 +2133,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitAttributeList">The function to call during attribute list visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitAttributeList(Func<CSharpSyntaxRewriter, AttributeListSyntax, AttributeListSyntax> visitAttributeList = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitAttributeList(Func<CSharpSyntaxRewriter, AttributeListSyntax, SyntaxNode> visitAttributeList = default)
         {
             _visitAttributeList = visitAttributeList;
             return this;
@@ -2122,7 +2144,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitAttributeTargetSpecifier">The function to call during attribute target specifier visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitAttributeTargetSpecifier(Func<CSharpSyntaxRewriter, AttributeTargetSpecifierSyntax, AttributeTargetSpecifierSyntax> visitAttributeTargetSpecifier = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitAttributeTargetSpecifier(Func<CSharpSyntaxRewriter, AttributeTargetSpecifierSyntax, SyntaxNode> visitAttributeTargetSpecifier = default)
         {
             _visitAttributeTargetSpecifier = visitAttributeTargetSpecifier;
             return this;
@@ -2133,7 +2155,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitAttribute">The function to call during attribute visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitAttribute(Func<CSharpSyntaxRewriter, AttributeSyntax, AttributeSyntax> visitAttribute = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitAttribute(Func<CSharpSyntaxRewriter, AttributeSyntax, SyntaxNode> visitAttribute = default)
         {
             _visitAttribute = visitAttribute;
             return this;
@@ -2144,7 +2166,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitAttributeArgumentList">The function to call during attribute argument list visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitAttributeArgumentList(Func<CSharpSyntaxRewriter, AttributeArgumentListSyntax, AttributeArgumentListSyntax> visitAttributeArgumentList = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitAttributeArgumentList(Func<CSharpSyntaxRewriter, AttributeArgumentListSyntax, SyntaxNode> visitAttributeArgumentList = default)
         {
             _visitAttributeArgumentList = visitAttributeArgumentList;
             return this;
@@ -2155,7 +2177,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitAttributeArgument">The function to call during attribute argument visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitAttributeArgument(Func<CSharpSyntaxRewriter, AttributeArgumentSyntax, AttributeArgumentSyntax> visitAttributeArgument = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitAttributeArgument(Func<CSharpSyntaxRewriter, AttributeArgumentSyntax, SyntaxNode> visitAttributeArgument = default)
         {
             _visitAttributeArgument = visitAttributeArgument;
             return this;
@@ -2166,7 +2188,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitNameEquals">The function to call during name equals visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitNameEquals(Func<CSharpSyntaxRewriter, NameEqualsSyntax, NameEqualsSyntax> visitNameEquals = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitNameEquals(Func<CSharpSyntaxRewriter, NameEqualsSyntax, SyntaxNode> visitNameEquals = default)
         {
             _visitNameEquals = visitNameEquals;
             return this;
@@ -2177,7 +2199,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitTypeParameterList">The function to call during type parameter list visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitTypeParameterList(Func<CSharpSyntaxRewriter, TypeParameterListSyntax, TypeParameterListSyntax> visitTypeParameterList = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitTypeParameterList(Func<CSharpSyntaxRewriter, TypeParameterListSyntax, SyntaxNode> visitTypeParameterList = default)
         {
             _visitTypeParameterList = visitTypeParameterList;
             return this;
@@ -2188,7 +2210,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitTypeParameter">The function to call during type parameter visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitTypeParameter(Func<CSharpSyntaxRewriter, TypeParameterSyntax, TypeParameterSyntax> visitTypeParameter = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitTypeParameter(Func<CSharpSyntaxRewriter, TypeParameterSyntax, SyntaxNode> visitTypeParameter = default)
         {
             _visitTypeParameter = visitTypeParameter;
             return this;
@@ -2199,7 +2221,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitClassDeclaration">The function to call during class declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitClassDeclaration(Func<CSharpSyntaxRewriter, ClassDeclarationSyntax, ClassDeclarationSyntax> visitClassDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitClassDeclaration(Func<CSharpSyntaxRewriter, ClassDeclarationSyntax, SyntaxNode> visitClassDeclaration = default)
         {
             _visitClassDeclaration = visitClassDeclaration;
             return this;
@@ -2210,7 +2232,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitStructDeclaration">The function to call during struct declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitStructDeclaration(Func<CSharpSyntaxRewriter, StructDeclarationSyntax, StructDeclarationSyntax> visitStructDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitStructDeclaration(Func<CSharpSyntaxRewriter, StructDeclarationSyntax, SyntaxNode> visitStructDeclaration = default)
         {
             _visitStructDeclaration = visitStructDeclaration;
             return this;
@@ -2221,7 +2243,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitInterfaceDeclaration">The function to call during interface declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitInterfaceDeclaration(Func<CSharpSyntaxRewriter, InterfaceDeclarationSyntax, InterfaceDeclarationSyntax> visitInterfaceDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitInterfaceDeclaration(Func<CSharpSyntaxRewriter, InterfaceDeclarationSyntax, SyntaxNode> visitInterfaceDeclaration = default)
         {
             _visitInterfaceDeclaration = visitInterfaceDeclaration;
             return this;
@@ -2232,7 +2254,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitRecordDeclaration">The function to call during record declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitRecordDeclaration(Func<CSharpSyntaxRewriter, RecordDeclarationSyntax, RecordDeclarationSyntax> visitRecordDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitRecordDeclaration(Func<CSharpSyntaxRewriter, RecordDeclarationSyntax, SyntaxNode> visitRecordDeclaration = default)
         {
             _visitRecordDeclaration = visitRecordDeclaration;
             return this;
@@ -2243,7 +2265,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitEnumDeclaration">The function to call during enum declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitEnumDeclaration(Func<CSharpSyntaxRewriter, EnumDeclarationSyntax, EnumDeclarationSyntax> visitEnumDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitEnumDeclaration(Func<CSharpSyntaxRewriter, EnumDeclarationSyntax, SyntaxNode> visitEnumDeclaration = default)
         {
             _visitEnumDeclaration = visitEnumDeclaration;
             return this;
@@ -2254,7 +2276,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitDelegateDeclaration">The function to call during delegate declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitDelegateDeclaration(Func<CSharpSyntaxRewriter, DelegateDeclarationSyntax, DelegateDeclarationSyntax> visitDelegateDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitDelegateDeclaration(Func<CSharpSyntaxRewriter, DelegateDeclarationSyntax, SyntaxNode> visitDelegateDeclaration = default)
         {
             _visitDelegateDeclaration = visitDelegateDeclaration;
             return this;
@@ -2265,7 +2287,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitEnumMemberDeclaration">The function to call during enum member declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitEnumMemberDeclaration(Func<CSharpSyntaxRewriter, EnumMemberDeclarationSyntax, EnumMemberDeclarationSyntax> visitEnumMemberDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitEnumMemberDeclaration(Func<CSharpSyntaxRewriter, EnumMemberDeclarationSyntax, SyntaxNode> visitEnumMemberDeclaration = default)
         {
             _visitEnumMemberDeclaration = visitEnumMemberDeclaration;
             return this;
@@ -2276,7 +2298,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitBaseList">The function to call during base list visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitBaseList(Func<CSharpSyntaxRewriter, BaseListSyntax, BaseListSyntax> visitBaseList = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitBaseList(Func<CSharpSyntaxRewriter, BaseListSyntax, SyntaxNode> visitBaseList = default)
         {
             _visitBaseList = visitBaseList;
             return this;
@@ -2287,7 +2309,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitSimpleBaseType">The function to call during simple base type visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitSimpleBaseType(Func<CSharpSyntaxRewriter, SimpleBaseTypeSyntax, SimpleBaseTypeSyntax> visitSimpleBaseType = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitSimpleBaseType(Func<CSharpSyntaxRewriter, SimpleBaseTypeSyntax, SyntaxNode> visitSimpleBaseType = default)
         {
             _visitSimpleBaseType = visitSimpleBaseType;
             return this;
@@ -2298,7 +2320,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitPrimaryConstructorBaseType">The function to call during primary constructor base type visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitPrimaryConstructorBaseType(Func<CSharpSyntaxRewriter, PrimaryConstructorBaseTypeSyntax, PrimaryConstructorBaseTypeSyntax> visitPrimaryConstructorBaseType = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitPrimaryConstructorBaseType(Func<CSharpSyntaxRewriter, PrimaryConstructorBaseTypeSyntax, SyntaxNode> visitPrimaryConstructorBaseType = default)
         {
             _visitPrimaryConstructorBaseType = visitPrimaryConstructorBaseType;
             return this;
@@ -2309,7 +2331,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitTypeParameterConstraintClause">The function to call during type parameter constraint clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitTypeParameterConstraintClause(Func<CSharpSyntaxRewriter, TypeParameterConstraintClauseSyntax, TypeParameterConstraintClauseSyntax> visitTypeParameterConstraintClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitTypeParameterConstraintClause(Func<CSharpSyntaxRewriter, TypeParameterConstraintClauseSyntax, SyntaxNode> visitTypeParameterConstraintClause = default)
         {
             _visitTypeParameterConstraintClause = visitTypeParameterConstraintClause;
             return this;
@@ -2320,7 +2342,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitConstructorConstraint">The function to call during constructor constraint visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitConstructorConstraint(Func<CSharpSyntaxRewriter, ConstructorConstraintSyntax, ConstructorConstraintSyntax> visitConstructorConstraint = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitConstructorConstraint(Func<CSharpSyntaxRewriter, ConstructorConstraintSyntax, SyntaxNode> visitConstructorConstraint = default)
         {
             _visitConstructorConstraint = visitConstructorConstraint;
             return this;
@@ -2331,7 +2353,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitClassOrStructConstraint">The function to call during class or struct constraint visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitClassOrStructConstraint(Func<CSharpSyntaxRewriter, ClassOrStructConstraintSyntax, ClassOrStructConstraintSyntax> visitClassOrStructConstraint = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitClassOrStructConstraint(Func<CSharpSyntaxRewriter, ClassOrStructConstraintSyntax, SyntaxNode> visitClassOrStructConstraint = default)
         {
             _visitClassOrStructConstraint = visitClassOrStructConstraint;
             return this;
@@ -2342,7 +2364,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitTypeConstraint">The function to call during type constraint visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitTypeConstraint(Func<CSharpSyntaxRewriter, TypeConstraintSyntax, TypeConstraintSyntax> visitTypeConstraint = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitTypeConstraint(Func<CSharpSyntaxRewriter, TypeConstraintSyntax, SyntaxNode> visitTypeConstraint = default)
         {
             _visitTypeConstraint = visitTypeConstraint;
             return this;
@@ -2353,7 +2375,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitDefaultConstraint">The function to call during default constraint visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitDefaultConstraint(Func<CSharpSyntaxRewriter, DefaultConstraintSyntax, DefaultConstraintSyntax> visitDefaultConstraint = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitDefaultConstraint(Func<CSharpSyntaxRewriter, DefaultConstraintSyntax, SyntaxNode> visitDefaultConstraint = default)
         {
             _visitDefaultConstraint = visitDefaultConstraint;
             return this;
@@ -2364,7 +2386,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitFieldDeclaration">The function to call during field declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitFieldDeclaration(Func<CSharpSyntaxRewriter, FieldDeclarationSyntax, FieldDeclarationSyntax> visitFieldDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitFieldDeclaration(Func<CSharpSyntaxRewriter, FieldDeclarationSyntax, SyntaxNode> visitFieldDeclaration = default)
         {
             _visitFieldDeclaration = visitFieldDeclaration;
             return this;
@@ -2377,7 +2399,7 @@ namespace FluentSyntaxRewriter
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
         public virtual
 
-         FluentCSharpSyntaxRewriter WithVisitEventFieldDeclaration(Func<CSharpSyntaxRewriter, EventFieldDeclarationSyntax, EventFieldDeclarationSyntax> visitEventFieldDeclaration = default)
+         FluentCSharpSyntaxRewriter WithVisitEventFieldDeclaration(Func<CSharpSyntaxRewriter, EventFieldDeclarationSyntax, SyntaxNode> visitEventFieldDeclaration = default)
         {
             _visitEventFieldDeclaration = visitEventFieldDeclaration;
             return this;
@@ -2388,7 +2410,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitExplicitInterfaceSpecifier">The function to call during explicit interface specifier visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitExplicitInterfaceSpecifier(Func<CSharpSyntaxRewriter, ExplicitInterfaceSpecifierSyntax, ExplicitInterfaceSpecifierSyntax> visitExplicitInterfaceSpecifier = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitExplicitInterfaceSpecifier(Func<CSharpSyntaxRewriter, ExplicitInterfaceSpecifierSyntax, SyntaxNode> visitExplicitInterfaceSpecifier = default)
         {
             _visitExplicitInterfaceSpecifier = visitExplicitInterfaceSpecifier;
             return this;
@@ -2399,7 +2421,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitMethodDeclaration">The function to call during method declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitMethodDeclaration(Func<CSharpSyntaxRewriter, MethodDeclarationSyntax, MethodDeclarationSyntax> visitMethodDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitMethodDeclaration(Func<CSharpSyntaxRewriter, MethodDeclarationSyntax, SyntaxNode> visitMethodDeclaration = default)
         {
             _visitMethodDeclaration = visitMethodDeclaration;
             return this;
@@ -2410,7 +2432,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitOperatorDeclaration">The function to call during operator declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitOperatorDeclaration(Func<CSharpSyntaxRewriter, OperatorDeclarationSyntax, OperatorDeclarationSyntax> visitOperatorDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitOperatorDeclaration(Func<CSharpSyntaxRewriter, OperatorDeclarationSyntax, SyntaxNode> visitOperatorDeclaration = default)
         {
             _visitOperatorDeclaration = visitOperatorDeclaration;
             return this;
@@ -2421,7 +2443,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitConversionOperatorDeclaration">The function to call during conversion operator declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitConversionOperatorDeclaration(Func<CSharpSyntaxRewriter, ConversionOperatorDeclarationSyntax, ConversionOperatorDeclarationSyntax> visitConversionOperatorDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitConversionOperatorDeclaration(Func<CSharpSyntaxRewriter, ConversionOperatorDeclarationSyntax, SyntaxNode> visitConversionOperatorDeclaration = default)
         {
             _visitConversionOperatorDeclaration = visitConversionOperatorDeclaration;
             return this;
@@ -2432,7 +2454,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitConstructorDeclaration">The function to call during constructor declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitConstructorDeclaration(Func<CSharpSyntaxRewriter, ConstructorDeclarationSyntax, ConstructorDeclarationSyntax> visitConstructorDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitConstructorDeclaration(Func<CSharpSyntaxRewriter, ConstructorDeclarationSyntax, SyntaxNode> visitConstructorDeclaration = default)
         {
             _visitConstructorDeclaration = visitConstructorDeclaration;
             return this;
@@ -2443,7 +2465,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitConstructorInitializer">The function to call during constructor initializer visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitConstructorInitializer(Func<CSharpSyntaxRewriter, ConstructorInitializerSyntax, ConstructorInitializerSyntax> visitConstructorInitializer = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitConstructorInitializer(Func<CSharpSyntaxRewriter, ConstructorInitializerSyntax, SyntaxNode> visitConstructorInitializer = default)
         {
             _visitConstructorInitializer = visitConstructorInitializer;
             return this;
@@ -2454,7 +2476,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitDestructorDeclaration">The function to call during destructor declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitDestructorDeclaration(Func<CSharpSyntaxRewriter, DestructorDeclarationSyntax, DestructorDeclarationSyntax> visitDestructorDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitDestructorDeclaration(Func<CSharpSyntaxRewriter, DestructorDeclarationSyntax, SyntaxNode> visitDestructorDeclaration = default)
         {
             _visitDestructorDeclaration = visitDestructorDeclaration;
             return this;
@@ -2465,7 +2487,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitPropertyDeclaration">The function to call during property declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitPropertyDeclaration(Func<CSharpSyntaxRewriter, PropertyDeclarationSyntax, PropertyDeclarationSyntax> visitPropertyDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitPropertyDeclaration(Func<CSharpSyntaxRewriter, PropertyDeclarationSyntax, SyntaxNode> visitPropertyDeclaration = default)
         {
             _visitPropertyDeclaration = visitPropertyDeclaration;
             return this;
@@ -2476,7 +2498,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitArrowExpressionClause">The function to call during arrow expression clause visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitArrowExpressionClause(Func<CSharpSyntaxRewriter, ArrowExpressionClauseSyntax, ArrowExpressionClauseSyntax> visitArrowExpressionClause = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitArrowExpressionClause(Func<CSharpSyntaxRewriter, ArrowExpressionClauseSyntax, SyntaxNode> visitArrowExpressionClause = default)
         {
             _visitArrowExpressionClause = visitArrowExpressionClause;
             return this;
@@ -2487,7 +2509,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitEventDeclaration">The function to call during event declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitEventDeclaration(Func<CSharpSyntaxRewriter, EventDeclarationSyntax, EventDeclarationSyntax> visitEventDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitEventDeclaration(Func<CSharpSyntaxRewriter, EventDeclarationSyntax, SyntaxNode> visitEventDeclaration = default)
         {
             _visitEventDeclaration = visitEventDeclaration;
             return this;
@@ -2498,7 +2520,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitIndexerDeclaration">The function to call during indexer declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitIndexerDeclaration(Func<CSharpSyntaxRewriter, IndexerDeclarationSyntax, IndexerDeclarationSyntax> visitIndexerDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitIndexerDeclaration(Func<CSharpSyntaxRewriter, IndexerDeclarationSyntax, SyntaxNode> visitIndexerDeclaration = default)
         {
             _visitIndexerDeclaration = visitIndexerDeclaration;
             return this;
@@ -2509,7 +2531,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitAccessorList">The function to call during accessor list visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitAccessorList(Func<CSharpSyntaxRewriter, AccessorListSyntax, AccessorListSyntax> visitAccessorList = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitAccessorList(Func<CSharpSyntaxRewriter, AccessorListSyntax, SyntaxNode> visitAccessorList = default)
         {
             _visitAccessorList = visitAccessorList;
             return this;
@@ -2520,7 +2542,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitAccessorDeclaration">The function to call during accessor declaration visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitAccessorDeclaration(Func<CSharpSyntaxRewriter, AccessorDeclarationSyntax, AccessorDeclarationSyntax> visitAccessorDeclaration = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitAccessorDeclaration(Func<CSharpSyntaxRewriter, AccessorDeclarationSyntax, SyntaxNode> visitAccessorDeclaration = default)
         {
             _visitAccessorDeclaration = visitAccessorDeclaration;
             return this;
@@ -2531,7 +2553,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitParameterList">The function to call during parameter list visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitParameterList(Func<CSharpSyntaxRewriter, ParameterListSyntax, ParameterListSyntax> visitParameterList = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitParameterList(Func<CSharpSyntaxRewriter, ParameterListSyntax, SyntaxNode> visitParameterList = default)
         {
             _visitParameterList = visitParameterList;
             return this;
@@ -2542,7 +2564,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitBracketedParameterList">The function to call during bracketed parameter list visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitBracketedParameterList(Func<CSharpSyntaxRewriter, BracketedParameterListSyntax, BracketedParameterListSyntax> visitBracketedParameterList = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitBracketedParameterList(Func<CSharpSyntaxRewriter, BracketedParameterListSyntax, SyntaxNode> visitBracketedParameterList = default)
         {
             _visitBracketedParameterList = visitBracketedParameterList;
             return this;
@@ -2553,7 +2575,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitParameter">The function to call during parameter visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitParameter(Func<CSharpSyntaxRewriter, ParameterSyntax, ParameterSyntax> visitParameter = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitParameter(Func<CSharpSyntaxRewriter, ParameterSyntax, SyntaxNode> visitParameter = default)
         {
             _visitParameter = visitParameter;
             return this;
@@ -2564,7 +2586,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitFunctionPointerParameter">The function to call during function pointer parameter visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitFunctionPointerParameter(Func<CSharpSyntaxRewriter, FunctionPointerParameterSyntax, FunctionPointerParameterSyntax> visitFunctionPointerParameter = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitFunctionPointerParameter(Func<CSharpSyntaxRewriter, FunctionPointerParameterSyntax, SyntaxNode> visitFunctionPointerParameter = default)
         {
             _visitFunctionPointerParameter = visitFunctionPointerParameter;
             return this;
@@ -2575,7 +2597,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitIncompleteMember">The function to call during incomplete member visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitIncompleteMember(Func<CSharpSyntaxRewriter, IncompleteMemberSyntax, IncompleteMemberSyntax> visitIncompleteMember = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitIncompleteMember(Func<CSharpSyntaxRewriter, IncompleteMemberSyntax, SyntaxNode> visitIncompleteMember = default)
         {
             _visitIncompleteMember = visitIncompleteMember;
             return this;
@@ -2586,7 +2608,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitSkippedTokensTrivia">The function to call during skipped tokens trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitSkippedTokensTrivia(Func<CSharpSyntaxRewriter, SkippedTokensTriviaSyntax, SkippedTokensTriviaSyntax> visitSkippedTokensTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitSkippedTokensTrivia(Func<CSharpSyntaxRewriter, SkippedTokensTriviaSyntax, SyntaxNode> visitSkippedTokensTrivia = default)
         {
             _visitSkippedTokensTrivia = visitSkippedTokensTrivia;
             return this;
@@ -2597,7 +2619,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitDocumentationCommentTrivia">The function to call during documentation comment trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitDocumentationCommentTrivia(Func<CSharpSyntaxRewriter, DocumentationCommentTriviaSyntax, DocumentationCommentTriviaSyntax> visitDocumentationCommentTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitDocumentationCommentTrivia(Func<CSharpSyntaxRewriter, DocumentationCommentTriviaSyntax, SyntaxNode> visitDocumentationCommentTrivia = default)
         {
             _visitDocumentationCommentTrivia = visitDocumentationCommentTrivia;
             return this;
@@ -2608,7 +2630,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitTypeCref">The function to call during type cref visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitTypeCref(Func<CSharpSyntaxRewriter, TypeCrefSyntax, TypeCrefSyntax> visitTypeCref = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitTypeCref(Func<CSharpSyntaxRewriter, TypeCrefSyntax, SyntaxNode> visitTypeCref = default)
         {
             _visitTypeCref = visitTypeCref;
             return this;
@@ -2619,7 +2641,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitQualifiedCref">The function to call during qualified cref visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitQualifiedCref(Func<CSharpSyntaxRewriter, QualifiedCrefSyntax, QualifiedCrefSyntax> visitQualifiedCref = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitQualifiedCref(Func<CSharpSyntaxRewriter, QualifiedCrefSyntax, SyntaxNode> visitQualifiedCref = default)
         {
             _visitQualifiedCref = visitQualifiedCref;
             return this;
@@ -2630,7 +2652,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitNameMemberCref">The function to call during name member cref visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitNameMemberCref(Func<CSharpSyntaxRewriter, NameMemberCrefSyntax, NameMemberCrefSyntax> visitNameMemberCref = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitNameMemberCref(Func<CSharpSyntaxRewriter, NameMemberCrefSyntax, SyntaxNode> visitNameMemberCref = default)
         {
             _visitNameMemberCref = visitNameMemberCref;
             return this;
@@ -2641,7 +2663,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitIndexerMemberCref">The function to call during indexer member cref visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitIndexerMemberCref(Func<CSharpSyntaxRewriter, IndexerMemberCrefSyntax, IndexerMemberCrefSyntax> visitIndexerMemberCref = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitIndexerMemberCref(Func<CSharpSyntaxRewriter, IndexerMemberCrefSyntax, SyntaxNode> visitIndexerMemberCref = default)
         {
             _visitIndexerMemberCref = visitIndexerMemberCref;
             return this;
@@ -2652,7 +2674,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitOperatorMemberCref">The function to call during operator member cref visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitOperatorMemberCref(Func<CSharpSyntaxRewriter, OperatorMemberCrefSyntax, OperatorMemberCrefSyntax> visitOperatorMemberCref = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitOperatorMemberCref(Func<CSharpSyntaxRewriter, OperatorMemberCrefSyntax, SyntaxNode> visitOperatorMemberCref = default)
         {
             _visitOperatorMemberCref = visitOperatorMemberCref;
             return this;
@@ -2663,7 +2685,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitConversionOperatorMemberCref">The function to call during conversion operator member cref visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitConversionOperatorMemberCref(Func<CSharpSyntaxRewriter, ConversionOperatorMemberCrefSyntax, ConversionOperatorMemberCrefSyntax> visitConversionOperatorMemberCref = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitConversionOperatorMemberCref(Func<CSharpSyntaxRewriter, ConversionOperatorMemberCrefSyntax, SyntaxNode> visitConversionOperatorMemberCref = default)
         {
             _visitConversionOperatorMemberCref = visitConversionOperatorMemberCref;
             return this;
@@ -2674,7 +2696,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitCrefParameterList">The function to call during cref parameter list visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitCrefParameterList(Func<CSharpSyntaxRewriter, CrefParameterListSyntax, CrefParameterListSyntax> visitCrefParameterList = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitCrefParameterList(Func<CSharpSyntaxRewriter, CrefParameterListSyntax, SyntaxNode> visitCrefParameterList = default)
         {
             _visitCrefParameterList = visitCrefParameterList;
             return this;
@@ -2685,7 +2707,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitCrefBracketedParameterList">The function to call during cref bracketed parameter list visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitCrefBracketedParameterList(Func<CSharpSyntaxRewriter, CrefBracketedParameterListSyntax, CrefBracketedParameterListSyntax> visitCrefBracketedParameterList = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitCrefBracketedParameterList(Func<CSharpSyntaxRewriter, CrefBracketedParameterListSyntax, SyntaxNode> visitCrefBracketedParameterList = default)
         {
             _visitCrefBracketedParameterList = visitCrefBracketedParameterList;
             return this;
@@ -2696,7 +2718,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitCrefParameter">The function to call during cref parameter visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitCrefParameter(Func<CSharpSyntaxRewriter, CrefParameterSyntax, CrefParameterSyntax> visitCrefParameter = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitCrefParameter(Func<CSharpSyntaxRewriter, CrefParameterSyntax, SyntaxNode> visitCrefParameter = default)
         {
             _visitCrefParameter = visitCrefParameter;
             return this;
@@ -2707,7 +2729,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitXmlElement">The function to call during XML element visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitXmlElement(Func<CSharpSyntaxRewriter, XmlElementSyntax, XmlElementSyntax> visitXmlElement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitXmlElement(Func<CSharpSyntaxRewriter, XmlElementSyntax, SyntaxNode> visitXmlElement = default)
         {
             _visitXmlElement = visitXmlElement;
             return this;
@@ -2718,7 +2740,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitXmlElementStartTag">The function to call during XML element start tag visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitXmlElementStartTag(Func<CSharpSyntaxRewriter, XmlElementStartTagSyntax, XmlElementStartTagSyntax> visitXmlElementStartTag = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitXmlElementStartTag(Func<CSharpSyntaxRewriter, XmlElementStartTagSyntax, SyntaxNode> visitXmlElementStartTag = default)
         {
             _visitXmlElementStartTag = visitXmlElementStartTag;
             return this;
@@ -2729,7 +2751,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitXmlElementEndTag">The function to call during XML element end tag visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitXmlElementEndTag(Func<CSharpSyntaxRewriter, XmlElementEndTagSyntax, XmlElementEndTagSyntax> visitXmlElementEndTag = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitXmlElementEndTag(Func<CSharpSyntaxRewriter, XmlElementEndTagSyntax, SyntaxNode> visitXmlElementEndTag = default)
         {
             _visitXmlElementEndTag = visitXmlElementEndTag;
             return this;
@@ -2740,7 +2762,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitXmlEmptyElement">The function to call during XML empty element visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitXmlEmptyElement(Func<CSharpSyntaxRewriter, XmlEmptyElementSyntax, XmlEmptyElementSyntax> visitXmlEmptyElement = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitXmlEmptyElement(Func<CSharpSyntaxRewriter, XmlEmptyElementSyntax, SyntaxNode> visitXmlEmptyElement = default)
         {
             _visitXmlEmptyElement = visitXmlEmptyElement;
             return this;
@@ -2751,7 +2773,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitXmlName">The function to call during XML name visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitXmlName(Func<CSharpSyntaxRewriter, XmlNameSyntax, XmlNameSyntax> visitXmlName = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitXmlName(Func<CSharpSyntaxRewriter, XmlNameSyntax, SyntaxNode> visitXmlName = default)
         {
             _visitXmlName = visitXmlName;
             return this;
@@ -2762,7 +2784,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitXmlPrefix">The function to call during XML prefix visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitXmlPrefix(Func<CSharpSyntaxRewriter, XmlPrefixSyntax, XmlPrefixSyntax> visitXmlPrefix = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitXmlPrefix(Func<CSharpSyntaxRewriter, XmlPrefixSyntax, SyntaxNode> visitXmlPrefix = default)
         {
             _visitXmlPrefix = visitXmlPrefix;
             return this;
@@ -2773,7 +2795,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitXmlTextAttribute">The function to call during XML text attribute visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitXmlTextAttribute(Func<CSharpSyntaxRewriter, XmlTextAttributeSyntax, XmlTextAttributeSyntax> visitXmlTextAttribute = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitXmlTextAttribute(Func<CSharpSyntaxRewriter, XmlTextAttributeSyntax, SyntaxNode> visitXmlTextAttribute = default)
         {
             _visitXmlTextAttribute = visitXmlTextAttribute;
             return this;
@@ -2784,7 +2806,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitXmlCrefAttribute">The function to call during XML cref attribute visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitXmlCrefAttribute(Func<CSharpSyntaxRewriter, XmlCrefAttributeSyntax, XmlCrefAttributeSyntax> visitXmlCrefAttribute = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitXmlCrefAttribute(Func<CSharpSyntaxRewriter, XmlCrefAttributeSyntax, SyntaxNode> visitXmlCrefAttribute = default)
         {
             _visitXmlCrefAttribute = visitXmlCrefAttribute;
             return this;
@@ -2795,7 +2817,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitXmlNameAttribute">The function to call during XML name attribute visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitXmlNameAttribute(Func<CSharpSyntaxRewriter, XmlNameAttributeSyntax, XmlNameAttributeSyntax> visitXmlNameAttribute = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitXmlNameAttribute(Func<CSharpSyntaxRewriter, XmlNameAttributeSyntax, SyntaxNode> visitXmlNameAttribute = default)
         {
             _visitXmlNameAttribute = visitXmlNameAttribute;
             return this;
@@ -2806,7 +2828,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitXmlText">The function to call during XML text visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitXmlText(Func<CSharpSyntaxRewriter, XmlTextSyntax, XmlTextSyntax> visitXmlText = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitXmlText(Func<CSharpSyntaxRewriter, XmlTextSyntax, SyntaxNode> visitXmlText = default)
         {
             _visitXmlText = visitXmlText;
             return this;
@@ -2817,7 +2839,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitXmlCDataSection">The function to call during XML CDATA section visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitXmlCDataSection(Func<CSharpSyntaxRewriter, XmlCDataSectionSyntax, XmlCDataSectionSyntax> visitXmlCDataSection = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitXmlCDataSection(Func<CSharpSyntaxRewriter, XmlCDataSectionSyntax, SyntaxNode> visitXmlCDataSection = default)
         {
             _visitXmlCDataSection = visitXmlCDataSection;
             return this;
@@ -2828,7 +2850,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitXmlProcessingInstruction">The function to call during XML processing instruction visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitXmlProcessingInstruction(Func<CSharpSyntaxRewriter, XmlProcessingInstructionSyntax, XmlProcessingInstructionSyntax> visitXmlProcessingInstruction = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitXmlProcessingInstruction(Func<CSharpSyntaxRewriter, XmlProcessingInstructionSyntax, SyntaxNode> visitXmlProcessingInstruction = default)
         {
             _visitXmlProcessingInstruction = visitXmlProcessingInstruction;
             return this;
@@ -2839,7 +2861,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitXmlComment">The function to call during XML comment visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitXmlComment(Func<CSharpSyntaxRewriter, XmlCommentSyntax, XmlCommentSyntax> visitXmlComment = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitXmlComment(Func<CSharpSyntaxRewriter, XmlCommentSyntax, SyntaxNode> visitXmlComment = default)
         {
             _visitXmlComment = visitXmlComment;
             return this;
@@ -2850,7 +2872,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitIfDirectiveTrivia">The function to call during if directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitIfDirectiveTrivia(Func<CSharpSyntaxRewriter, IfDirectiveTriviaSyntax, IfDirectiveTriviaSyntax> visitIfDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitIfDirectiveTrivia(Func<CSharpSyntaxRewriter, IfDirectiveTriviaSyntax, SyntaxNode> visitIfDirectiveTrivia = default)
         {
             _visitIfDirectiveTrivia = visitIfDirectiveTrivia;
             return this;
@@ -2861,7 +2883,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitElifDirectiveTrivia">The function to call during elif directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitElifDirectiveTrivia(Func<CSharpSyntaxRewriter, ElifDirectiveTriviaSyntax, ElifDirectiveTriviaSyntax> visitElifDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitElifDirectiveTrivia(Func<CSharpSyntaxRewriter, ElifDirectiveTriviaSyntax, SyntaxNode> visitElifDirectiveTrivia = default)
         {
             _visitElifDirectiveTrivia = visitElifDirectiveTrivia;
             return this;
@@ -2872,7 +2894,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitElseDirectiveTrivia">The function to call during else directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitElseDirectiveTrivia(Func<CSharpSyntaxRewriter, ElseDirectiveTriviaSyntax, ElseDirectiveTriviaSyntax> visitElseDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitElseDirectiveTrivia(Func<CSharpSyntaxRewriter, ElseDirectiveTriviaSyntax, SyntaxNode> visitElseDirectiveTrivia = default)
         {
             _visitElseDirectiveTrivia = visitElseDirectiveTrivia;
             return this;
@@ -2883,7 +2905,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitEndIfDirectiveTrivia">The function to call during endif directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitEndIfDirectiveTrivia(Func<CSharpSyntaxRewriter, EndIfDirectiveTriviaSyntax, EndIfDirectiveTriviaSyntax> visitEndIfDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitEndIfDirectiveTrivia(Func<CSharpSyntaxRewriter, EndIfDirectiveTriviaSyntax, SyntaxNode> visitEndIfDirectiveTrivia = default)
         {
             _visitEndIfDirectiveTrivia = visitEndIfDirectiveTrivia;
             return this;
@@ -2894,7 +2916,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitRegionDirectiveTrivia">The function to call during region directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitRegionDirectiveTrivia(Func<CSharpSyntaxRewriter, RegionDirectiveTriviaSyntax, RegionDirectiveTriviaSyntax> visitRegionDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitRegionDirectiveTrivia(Func<CSharpSyntaxRewriter, RegionDirectiveTriviaSyntax, SyntaxNode> visitRegionDirectiveTrivia = default)
         {
             _visitRegionDirectiveTrivia = visitRegionDirectiveTrivia;
             return this;
@@ -2905,7 +2927,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitEndRegionDirectiveTrivia">The function to call during end region directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitEndRegionDirectiveTrivia(Func<CSharpSyntaxRewriter, EndRegionDirectiveTriviaSyntax, EndRegionDirectiveTriviaSyntax> visitEndRegionDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitEndRegionDirectiveTrivia(Func<CSharpSyntaxRewriter, EndRegionDirectiveTriviaSyntax, SyntaxNode> visitEndRegionDirectiveTrivia = default)
         {
             _visitEndRegionDirectiveTrivia = visitEndRegionDirectiveTrivia;
             return this;
@@ -2916,7 +2938,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitErrorDirectiveTrivia">The function to call during error directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitErrorDirectiveTrivia(Func<CSharpSyntaxRewriter, ErrorDirectiveTriviaSyntax, ErrorDirectiveTriviaSyntax> visitErrorDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitErrorDirectiveTrivia(Func<CSharpSyntaxRewriter, ErrorDirectiveTriviaSyntax, SyntaxNode> visitErrorDirectiveTrivia = default)
         {
             _visitErrorDirectiveTrivia = visitErrorDirectiveTrivia;
             return this;
@@ -2927,7 +2949,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitWarningDirectiveTrivia">The function to call during warning directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitWarningDirectiveTrivia(Func<CSharpSyntaxRewriter, WarningDirectiveTriviaSyntax, WarningDirectiveTriviaSyntax> visitWarningDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitWarningDirectiveTrivia(Func<CSharpSyntaxRewriter, WarningDirectiveTriviaSyntax, SyntaxNode> visitWarningDirectiveTrivia = default)
         {
             _visitWarningDirectiveTrivia = visitWarningDirectiveTrivia;
             return this;
@@ -2938,7 +2960,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitBadDirectiveTrivia">The function to call during bad directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitBadDirectiveTrivia(Func<CSharpSyntaxRewriter, BadDirectiveTriviaSyntax, BadDirectiveTriviaSyntax> visitBadDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitBadDirectiveTrivia(Func<CSharpSyntaxRewriter, BadDirectiveTriviaSyntax, SyntaxNode> visitBadDirectiveTrivia = default)
         {
             _visitBadDirectiveTrivia = visitBadDirectiveTrivia;
             return this;
@@ -2949,7 +2971,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitDefineDirectiveTrivia">The function to call during define directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitDefineDirectiveTrivia(Func<CSharpSyntaxRewriter, DefineDirectiveTriviaSyntax, DefineDirectiveTriviaSyntax> visitDefineDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitDefineDirectiveTrivia(Func<CSharpSyntaxRewriter, DefineDirectiveTriviaSyntax, SyntaxNode> visitDefineDirectiveTrivia = default)
         {
             _visitDefineDirectiveTrivia = visitDefineDirectiveTrivia;
             return this;
@@ -2960,7 +2982,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitUndefDirectiveTrivia">The function to call during undef directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitUndefDirectiveTrivia(Func<CSharpSyntaxRewriter, UndefDirectiveTriviaSyntax, UndefDirectiveTriviaSyntax> visitUndefDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitUndefDirectiveTrivia(Func<CSharpSyntaxRewriter, UndefDirectiveTriviaSyntax, SyntaxNode> visitUndefDirectiveTrivia = default)
         {
             _visitUndefDirectiveTrivia = visitUndefDirectiveTrivia;
             return this;
@@ -2971,7 +2993,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitLineDirectiveTrivia">The function to call during line directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitLineDirectiveTrivia(Func<CSharpSyntaxRewriter, LineDirectiveTriviaSyntax, LineDirectiveTriviaSyntax> visitLineDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitLineDirectiveTrivia(Func<CSharpSyntaxRewriter, LineDirectiveTriviaSyntax, SyntaxNode> visitLineDirectiveTrivia = default)
         {
             _visitLineDirectiveTrivia = visitLineDirectiveTrivia;
             return this;
@@ -2982,7 +3004,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitLineDirectivePosition">The function to call during line directive position visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitLineDirectivePosition(Func<CSharpSyntaxRewriter, LineDirectivePositionSyntax, LineDirectivePositionSyntax> visitLineDirectivePosition = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitLineDirectivePosition(Func<CSharpSyntaxRewriter, LineDirectivePositionSyntax, SyntaxNode> visitLineDirectivePosition = default)
         {
             _visitLineDirectivePosition = visitLineDirectivePosition;
             return this;
@@ -2993,7 +3015,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitLineSpanDirectiveTrivia">The function to call during line span directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitLineSpanDirectiveTrivia(Func<CSharpSyntaxRewriter, LineSpanDirectiveTriviaSyntax, LineSpanDirectiveTriviaSyntax> visitLineSpanDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitLineSpanDirectiveTrivia(Func<CSharpSyntaxRewriter, LineSpanDirectiveTriviaSyntax, SyntaxNode> visitLineSpanDirectiveTrivia = default)
         {
             _visitLineSpanDirectiveTrivia = visitLineSpanDirectiveTrivia;
             return this;
@@ -3004,7 +3026,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitPragmaWarningDirectiveTrivia">The function to call during pragma warning directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitPragmaWarningDirectiveTrivia(Func<CSharpSyntaxRewriter, PragmaWarningDirectiveTriviaSyntax, PragmaWarningDirectiveTriviaSyntax> visitPragmaWarningDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitPragmaWarningDirectiveTrivia(Func<CSharpSyntaxRewriter, PragmaWarningDirectiveTriviaSyntax, SyntaxNode> visitPragmaWarningDirectiveTrivia = default)
         {
             _visitPragmaWarningDirectiveTrivia = visitPragmaWarningDirectiveTrivia;
             return this;
@@ -3015,7 +3037,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitPragmaChecksumDirectiveTrivia">The function to call during pragma checksum directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitPragmaChecksumDirectiveTrivia(Func<CSharpSyntaxRewriter, PragmaChecksumDirectiveTriviaSyntax, PragmaChecksumDirectiveTriviaSyntax> visitPragmaChecksumDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitPragmaChecksumDirectiveTrivia(Func<CSharpSyntaxRewriter, PragmaChecksumDirectiveTriviaSyntax, SyntaxNode> visitPragmaChecksumDirectiveTrivia = default)
         {
             _visitPragmaChecksumDirectiveTrivia = visitPragmaChecksumDirectiveTrivia;
             return this;
@@ -3026,7 +3048,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitReferenceDirectiveTrivia">The function to call during reference directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitReferenceDirectiveTrivia(Func<CSharpSyntaxRewriter, ReferenceDirectiveTriviaSyntax, ReferenceDirectiveTriviaSyntax> visitReferenceDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitReferenceDirectiveTrivia(Func<CSharpSyntaxRewriter, ReferenceDirectiveTriviaSyntax, SyntaxNode> visitReferenceDirectiveTrivia = default)
         {
             _visitReferenceDirectiveTrivia = visitReferenceDirectiveTrivia;
             return this;
@@ -3037,7 +3059,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitLoadDirectiveTrivia">The function to call during load directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitLoadDirectiveTrivia(Func<CSharpSyntaxRewriter, LoadDirectiveTriviaSyntax, LoadDirectiveTriviaSyntax> visitLoadDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitLoadDirectiveTrivia(Func<CSharpSyntaxRewriter, LoadDirectiveTriviaSyntax, SyntaxNode> visitLoadDirectiveTrivia = default)
         {
             _visitLoadDirectiveTrivia = visitLoadDirectiveTrivia;
             return this;
@@ -3048,7 +3070,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitShebangDirectiveTrivia">The function to call during shebang directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitShebangDirectiveTrivia(Func<CSharpSyntaxRewriter, ShebangDirectiveTriviaSyntax, ShebangDirectiveTriviaSyntax> visitShebangDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitShebangDirectiveTrivia(Func<CSharpSyntaxRewriter, ShebangDirectiveTriviaSyntax, SyntaxNode> visitShebangDirectiveTrivia = default)
         {
             _visitShebangDirectiveTrivia = visitShebangDirectiveTrivia;
             return this;
@@ -3059,7 +3081,7 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="visitNullableDirectiveTrivia">The function to call during nullable directive trivia visits.</param>
         /// <returns>The current <see cref="FluentCSharpSyntaxRewriter"/> instance.</returns>
-        public virtual FluentCSharpSyntaxRewriter WithVisitNullableDirectiveTrivia(Func<CSharpSyntaxRewriter, NullableDirectiveTriviaSyntax, NullableDirectiveTriviaSyntax> visitNullableDirectiveTrivia = default)
+        public virtual FluentCSharpSyntaxRewriter WithVisitNullableDirectiveTrivia(Func<CSharpSyntaxRewriter, NullableDirectiveTriviaSyntax, SyntaxNode> visitNullableDirectiveTrivia = default)
         {
             _visitNullableDirectiveTrivia = visitNullableDirectiveTrivia;
             return this;
@@ -3149,8 +3171,10 @@ namespace FluentSyntaxRewriter
         /// <returns>The visited syntax node, possibly modified.</returns>
         public override TNode VisitListElement<TNode>(TNode node)
         {
-            if (_visitListElementNode != null)
-                node = (TNode)_visitListElementNode.Invoke(this, node);
+            if (!_visitListElementNode.TryGetValue(typeof(TNode), out var @delegate))
+                return base.VisitListElement(node);
+            if (@delegate is Func<CSharpSyntaxRewriter, TNode, TNode> visitListElementNode)
+                node = visitListElementNode.Invoke(this, node);
             return base.VisitListElement(node);
         }
 
@@ -3162,8 +3186,10 @@ namespace FluentSyntaxRewriter
         /// <returns>The visited separated syntax list of nodes, possibly modified.</returns>
         public override SeparatedSyntaxList<TNode> VisitList<TNode>(SeparatedSyntaxList<TNode> list)
         {
-            if (_visitListSeparatedList != null)
-                list = (SeparatedSyntaxList<TNode>)_visitListSeparatedList.Invoke(this, list);
+            if (!_visitListSeparatedList.TryGetValue(typeof(TNode), out var @delegate))
+                return base.VisitList(list);
+            if (@delegate is Func<CSharpSyntaxRewriter, SeparatedSyntaxList<TNode>, SeparatedSyntaxList<TNode>> visitListSeparatedList)
+                list = visitListSeparatedList.Invoke(this, list);
             return base.VisitList(list);
         }
 
@@ -3175,8 +3201,10 @@ namespace FluentSyntaxRewriter
         /// <returns>The visited syntax list of nodes, possibly modified.</returns>
         public override SyntaxList<TNode> VisitList<TNode>(SyntaxList<TNode> list)
         {
-            if (_visitListNode != null)
-                list = (SyntaxList<TNode>)_visitListNode.Invoke(this, list);
+            if (!_visitListNode.TryGetValue(typeof(TNode), out var @delegate))
+                return base.VisitList(list);
+            if (@delegate is Func<CSharpSyntaxRewriter, SyntaxList<TNode>, SyntaxList<TNode>> visitListNode)
+                list = visitListNode.Invoke(this, list);
             return base.VisitList(list);
         }
 
@@ -3212,7 +3240,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitIdentifierName(IdentifierNameSyntax node)
         {
             if (_visitIdentifierName != null)
-                node = _visitIdentifierName.Invoke(this, node);
+            {
+                var visit = _visitIdentifierName.Invoke(this, node);
+                return (visit is IdentifierNameSyntax newNode) ? base.VisitIdentifierName(newNode) : visit;
+            }
             return base.VisitIdentifierName(node);
         }
 
@@ -3224,7 +3255,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitQualifiedName(QualifiedNameSyntax node)
         {
             if (_visitQualifiedName != null)
-                node = _visitQualifiedName.Invoke(this, node);
+            {
+                var visit = _visitQualifiedName.Invoke(this, node);
+                return (visit is QualifiedNameSyntax newNode) ? base.VisitQualifiedName(newNode) : visit;
+            }
             return base.VisitQualifiedName(node);
         }
 
@@ -3236,7 +3270,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitGenericName(GenericNameSyntax node)
         {
             if (_visitGenericName != null)
-                node = _visitGenericName.Invoke(this, node);
+            {
+                var visit = _visitGenericName.Invoke(this, node);
+                return (visit is GenericNameSyntax newNode) ? base.VisitGenericName(newNode) : visit;
+            }
             return base.VisitGenericName(node);
         }
 
@@ -3248,7 +3285,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitTypeArgumentList(TypeArgumentListSyntax node)
         {
             if (_visitTypeArgumentList != null)
-                node = _visitTypeArgumentList.Invoke(this, node);
+            {
+                var visit = _visitTypeArgumentList.Invoke(this, node);
+                return (visit is TypeArgumentListSyntax newNode) ? base.VisitTypeArgumentList(newNode) : visit;
+            }
             return base.VisitTypeArgumentList(node);
         }
 
@@ -3260,7 +3300,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitAliasQualifiedName(AliasQualifiedNameSyntax node)
         {
             if (_visitAliasQualifiedName != null)
-                node = _visitAliasQualifiedName.Invoke(this, node);
+            {
+                var visit = _visitAliasQualifiedName.Invoke(this, node);
+                return (visit is AliasQualifiedNameSyntax newNode) ? base.VisitAliasQualifiedName(newNode) : visit;
+            }
             return base.VisitAliasQualifiedName(node);
         }
 
@@ -3272,7 +3315,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitPredefinedType(PredefinedTypeSyntax node)
         {
             if (_visitPredefinedType != null)
-                node = _visitPredefinedType.Invoke(this, node);
+            {
+                var visit = _visitPredefinedType.Invoke(this, node);
+                return (visit is PredefinedTypeSyntax newNode) ? base.VisitPredefinedType(newNode) : visit;
+            }
             return base.VisitPredefinedType(node);
         }
 
@@ -3284,7 +3330,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitArrayType(ArrayTypeSyntax node)
         {
             if (_visitArrayType != null)
-                node = _visitArrayType.Invoke(this, node);
+            {
+                var visit = _visitArrayType.Invoke(this, node);
+                return (visit is ArrayTypeSyntax newNode) ? base.VisitArrayType(newNode) : visit;
+            }
             return base.VisitArrayType(node);
         }
 
@@ -3296,7 +3345,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitArrayRankSpecifier(ArrayRankSpecifierSyntax node)
         {
             if (_visitArrayRankSpecifier != null)
-                node = _visitArrayRankSpecifier.Invoke(this, node);
+            {
+                var visit = _visitArrayRankSpecifier.Invoke(this, node);
+                return (visit is ArrayRankSpecifierSyntax newNode) ? base.VisitArrayRankSpecifier(newNode) : visit;
+            }
             return base.VisitArrayRankSpecifier(node);
         }
 
@@ -3308,7 +3360,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitPointerType(PointerTypeSyntax node)
         {
             if (_visitPointerType != null)
-                node = _visitPointerType.Invoke(this, node);
+            {
+                var visit = _visitPointerType.Invoke(this, node);
+                return (visit is PointerTypeSyntax newNode) ? base.VisitPointerType(newNode) : visit;
+            }
             return base.VisitPointerType(node);
         }
 
@@ -3320,7 +3375,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitFunctionPointerType(FunctionPointerTypeSyntax node)
         {
             if (_visitFunctionPointerType != null)
-                node = _visitFunctionPointerType.Invoke(this, node);
+            {
+                var visit = _visitFunctionPointerType.Invoke(this, node);
+                return (visit is FunctionPointerTypeSyntax newNode) ? base.VisitFunctionPointerType(newNode) : visit;
+            }
             return base.VisitFunctionPointerType(node);
         }
 
@@ -3332,10 +3390,11 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitFunctionPointerParameterList(FunctionPointerParameterListSyntax node)
         {
             if (_visitFunctionPointerParameterList != null)
-                node = _visitFunctionPointerParameterList.Invoke(this, node);
-            return base
-
-        .VisitFunctionPointerParameterList(node);
+            {
+                var visit = _visitFunctionPointerParameterList.Invoke(this, node);
+                return (visit is FunctionPointerParameterListSyntax newNode) ? base.VisitFunctionPointerParameterList(newNode) : visit;
+            }
+            return base.VisitFunctionPointerParameterList(node);
         }
 
         /// <summary>
@@ -3346,7 +3405,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitFunctionPointerCallingConvention(FunctionPointerCallingConventionSyntax node)
         {
             if (_visitFunctionPointerCallingConvention != null)
-                node = _visitFunctionPointerCallingConvention.Invoke(this, node);
+            {
+                var visit = _visitFunctionPointerCallingConvention.Invoke(this, node);
+                return (visit is FunctionPointerCallingConventionSyntax newNode) ? base.VisitFunctionPointerCallingConvention(newNode) : visit;
+            }
             return base.VisitFunctionPointerCallingConvention(node);
         }
 
@@ -3358,7 +3420,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitFunctionPointerUnmanagedCallingConventionList(FunctionPointerUnmanagedCallingConventionListSyntax node)
         {
             if (_visitFunctionPointerUnmanagedCallingConventionList != null)
-                node = _visitFunctionPointerUnmanagedCallingConventionList.Invoke(this, node);
+            {
+                var visit = _visitFunctionPointerUnmanagedCallingConventionList.Invoke(this, node);
+                return (visit is FunctionPointerUnmanagedCallingConventionListSyntax newNode) ? base.VisitFunctionPointerUnmanagedCallingConventionList(newNode) : visit;
+            }
             return base.VisitFunctionPointerUnmanagedCallingConventionList(node);
         }
 
@@ -3370,7 +3435,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitFunctionPointerUnmanagedCallingConvention(FunctionPointerUnmanagedCallingConventionSyntax node)
         {
             if (_visitFunctionPointerUnmanagedCallingConvention != null)
-                node = _visitFunctionPointerUnmanagedCallingConvention.Invoke(this, node);
+            {
+                var visit = _visitFunctionPointerUnmanagedCallingConvention.Invoke(this, node);
+                return (visit is FunctionPointerUnmanagedCallingConventionSyntax newNode) ? base.VisitFunctionPointerUnmanagedCallingConvention(newNode) : visit;
+            }
             return base.VisitFunctionPointerUnmanagedCallingConvention(node);
         }
 
@@ -3382,7 +3450,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitNullableType(NullableTypeSyntax node)
         {
             if (_visitNullableType != null)
-                node = _visitNullableType.Invoke(this, node);
+            {
+                var visit = _visitNullableType.Invoke(this, node);
+                return (visit is NullableTypeSyntax newNode) ? base.VisitNullableType(newNode) : visit;
+            }
             return base.VisitNullableType(node);
         }
 
@@ -3394,7 +3465,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitTupleType(TupleTypeSyntax node)
         {
             if (_visitTupleType != null)
-                node = _visitTupleType.Invoke(this, node);
+            {
+                var visit = _visitTupleType.Invoke(this, node);
+                return (visit is TupleTypeSyntax newNode) ? base.VisitTupleType(newNode) : visit;
+            }
             return base.VisitTupleType(node);
         }
 
@@ -3406,7 +3480,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitTupleElement(TupleElementSyntax node)
         {
             if (_visitTupleElement != null)
-                node = _visitTupleElement.Invoke(this, node);
+            {
+                var visit = _visitTupleElement.Invoke(this, node);
+                return (visit is TupleElementSyntax newNode) ? base.VisitTupleElement(newNode) : visit;
+            }
             return base.VisitTupleElement(node);
         }
 
@@ -3418,7 +3495,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitOmittedTypeArgument(OmittedTypeArgumentSyntax node)
         {
             if (_visitOmittedTypeArgument != null)
-                node = _visitOmittedTypeArgument.Invoke(this, node);
+            {
+                var visit = _visitOmittedTypeArgument.Invoke(this, node);
+                return (visit is OmittedTypeArgumentSyntax newNode) ? base.VisitOmittedTypeArgument(newNode) : visit;
+            }
             return base.VisitOmittedTypeArgument(node);
         }
 
@@ -3430,7 +3510,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitRefType(RefTypeSyntax node)
         {
             if (_visitRefType != null)
-                node = _visitRefType.Invoke(this, node);
+            {
+                var visit = _visitRefType.Invoke(this, node);
+                return (visit is RefTypeSyntax newNode) ? base.VisitRefType(newNode) : visit;
+            }
             return base.VisitRefType(node);
         }
 
@@ -3442,7 +3525,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitScopedType(ScopedTypeSyntax node)
         {
             if (_visitScopedType != null)
-                node = _visitScopedType.Invoke(this, node);
+            {
+                var visit = _visitScopedType.Invoke(this, node);
+                return (visit is ScopedTypeSyntax newNode) ? base.VisitScopedType(newNode) : visit;
+            }
             return base.VisitScopedType(node);
         }
 
@@ -3454,7 +3540,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitParenthesizedExpression(ParenthesizedExpressionSyntax node)
         {
             if (_visitParenthesizedExpression != null)
-                node = _visitParenthesizedExpression.Invoke(this, node);
+            {
+                var visit = _visitParenthesizedExpression.Invoke(this, node);
+                return (visit is ParenthesizedExpressionSyntax newNode) ? base.VisitParenthesizedExpression(newNode) : visit;
+            }
             return base.VisitParenthesizedExpression(node);
         }
 
@@ -3466,7 +3555,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitTupleExpression(TupleExpressionSyntax node)
         {
             if (_visitTupleExpression != null)
-                node = _visitTupleExpression.Invoke(this, node);
+            {
+                var visit = _visitTupleExpression.Invoke(this, node);
+                return (visit is TupleExpressionSyntax newNode) ? base.VisitTupleExpression(newNode) : visit;
+            }
             return base.VisitTupleExpression(node);
         }
 
@@ -3478,7 +3570,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitPrefixUnaryExpression(PrefixUnaryExpressionSyntax node)
         {
             if (_visitPrefixUnaryExpression != null)
-                node = _visitPrefixUnaryExpression.Invoke(this, node);
+            {
+                var visit = _visitPrefixUnaryExpression.Invoke(this, node);
+                return (visit is PrefixUnaryExpressionSyntax newNode) ? base.VisitPrefixUnaryExpression(newNode) : visit;
+            }
             return base.VisitPrefixUnaryExpression(node);
         }
 
@@ -3490,7 +3585,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitAwaitExpression(AwaitExpressionSyntax node)
         {
             if (_visitAwaitExpression != null)
-                node = _visitAwaitExpression.Invoke(this, node);
+            {
+                var visit = _visitAwaitExpression.Invoke(this, node);
+                return (visit is AwaitExpressionSyntax newNode) ? base.VisitAwaitExpression(newNode) : visit;
+            }
             return base.VisitAwaitExpression(node);
         }
 
@@ -3502,7 +3600,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitPostfixUnaryExpression(PostfixUnaryExpressionSyntax node)
         {
             if (_visitPostfixUnaryExpression != null)
-                node = _visitPostfixUnaryExpression.Invoke(this, node);
+            {
+                var visit = _visitPostfixUnaryExpression.Invoke(this, node);
+                return (visit is PostfixUnaryExpressionSyntax newNode) ? base.VisitPostfixUnaryExpression(newNode) : visit;
+            }
             return base.VisitPostfixUnaryExpression(node);
         }
 
@@ -3514,7 +3615,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitMemberAccessExpression(MemberAccessExpressionSyntax node)
         {
             if (_visitMemberAccessExpression != null)
-                node = _visitMemberAccessExpression.Invoke(this, node);
+            {
+                var visit = _visitMemberAccessExpression.Invoke(this, node);
+                return (visit is MemberAccessExpressionSyntax newNode) ? base.VisitMemberAccessExpression(newNode) : visit;
+            }
             return base.VisitMemberAccessExpression(node);
         }
 
@@ -3526,7 +3630,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitConditionalAccessExpression(ConditionalAccessExpressionSyntax node)
         {
             if (_visitConditionalAccessExpression != null)
-                node = _visitConditionalAccessExpression.Invoke(this, node);
+            {
+                var visit = _visitConditionalAccessExpression.Invoke(this, node);
+                return (visit is ConditionalAccessExpressionSyntax newNode) ? base.VisitConditionalAccessExpression(newNode) : visit;
+            }
             return base.VisitConditionalAccessExpression(node);
         }
 
@@ -3538,7 +3645,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitMemberBindingExpression(MemberBindingExpressionSyntax node)
         {
             if (_visitMemberBindingExpression != null)
-                node = _visitMemberBindingExpression.Invoke(this, node);
+            {
+                var visit = _visitMemberBindingExpression.Invoke(this, node);
+                return (visit is MemberBindingExpressionSyntax newNode) ? base.VisitMemberBindingExpression(newNode) : visit;
+            }
             return base.VisitMemberBindingExpression(node);
         }
 
@@ -3550,7 +3660,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitElementBindingExpression(ElementBindingExpressionSyntax node)
         {
             if (_visitElementBindingExpression != null)
-                node = _visitElementBindingExpression.Invoke(this, node);
+            {
+                var visit = _visitElementBindingExpression.Invoke(this, node);
+                return (visit is ElementBindingExpressionSyntax newNode) ? base.VisitElementBindingExpression(newNode) : visit;
+            }
             return base.VisitElementBindingExpression(node);
         }
 
@@ -3562,7 +3675,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitRangeExpression(RangeExpressionSyntax node)
         {
             if (_visitRangeExpression != null)
-                node = _visitRangeExpression.Invoke(this, node);
+            {
+                var visit = _visitRangeExpression.Invoke(this, node);
+                return (visit is RangeExpressionSyntax newNode) ? base.VisitRangeExpression(newNode) : visit;
+            }
             return base.VisitRangeExpression(node);
         }
 
@@ -3574,7 +3690,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitImplicitElementAccess(ImplicitElementAccessSyntax node)
         {
             if (_visitImplicitElementAccess != null)
-                node = _visitImplicitElementAccess.Invoke(this, node);
+            {
+                var visit = _visitImplicitElementAccess.Invoke(this, node);
+                return (visit is ImplicitElementAccessSyntax newNode) ? base.VisitImplicitElementAccess(newNode) : visit;
+            }
             return base.VisitImplicitElementAccess(node);
         }
 
@@ -3586,7 +3705,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitBinaryExpression(BinaryExpressionSyntax node)
         {
             if (_visitBinaryExpression != null)
-                node = _visitBinaryExpression.Invoke(this, node);
+            {
+                var visit = _visitBinaryExpression.Invoke(this, node);
+                return (visit is BinaryExpressionSyntax newNode) ? base.VisitBinaryExpression(newNode) : visit;
+            }
             return base.VisitBinaryExpression(node);
         }
 
@@ -3598,7 +3720,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitAssignmentExpression(AssignmentExpressionSyntax node)
         {
             if (_visitAssignmentExpression != null)
-                node = _visitAssignmentExpression.Invoke(this, node);
+            {
+                var visit = _visitAssignmentExpression.Invoke(this, node);
+                return (visit is AssignmentExpressionSyntax newNode) ? base.VisitAssignmentExpression(newNode) : visit;
+            }
             return base.VisitAssignmentExpression(node);
         }
 
@@ -3610,7 +3735,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitConditionalExpression(ConditionalExpressionSyntax node)
         {
             if (_visitConditionalExpression != null)
-                node = _visitConditionalExpression.Invoke(this, node);
+            {
+                var visit = _visitConditionalExpression.Invoke(this, node);
+                return (visit is ConditionalExpressionSyntax newNode) ? base.VisitConditionalExpression(newNode) : visit;
+            }
             return base.VisitConditionalExpression(node);
         }
 
@@ -3622,7 +3750,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitThisExpression(ThisExpressionSyntax node)
         {
             if (_visitThisExpression != null)
-                node = _visitThisExpression.Invoke(this, node);
+            {
+                var visit = _visitThisExpression.Invoke(this, node);
+                return (visit is ThisExpressionSyntax newNode) ? base.VisitThisExpression(newNode) : visit;
+            }
             return base.VisitThisExpression(node);
         }
 
@@ -3634,7 +3765,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitBaseExpression(BaseExpressionSyntax node)
         {
             if (_visitBaseExpression != null)
-                node = _visitBaseExpression.Invoke(this, node);
+            {
+                var visit = _visitBaseExpression.Invoke(this, node);
+                return (visit is BaseExpressionSyntax newNode) ? base.VisitBaseExpression(newNode) : visit;
+            }
             return base.VisitBaseExpression(node);
         }
 
@@ -3646,7 +3780,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitLiteralExpression(LiteralExpressionSyntax node)
         {
             if (_visitLiteralExpression != null)
-                node = _visitLiteralExpression.Invoke(this, node);
+            {
+                var visit = _visitLiteralExpression.Invoke(this, node);
+                return (visit is LiteralExpressionSyntax newNode) ? base.VisitLiteralExpression(newNode) : visit;
+            }
             return base.VisitLiteralExpression(node);
         }
 
@@ -3658,7 +3795,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitMakeRefExpression(MakeRefExpressionSyntax node)
         {
             if (_visitMakeRefExpression != null)
-                node = _visitMakeRefExpression.Invoke(this, node);
+            {
+                var visit = _visitMakeRefExpression.Invoke(this, node);
+                return (visit is MakeRefExpressionSyntax newNode) ? base.VisitMakeRefExpression(newNode) : visit;
+            }
             return base.VisitMakeRefExpression(node);
         }
 
@@ -3670,7 +3810,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitRefTypeExpression(RefTypeExpressionSyntax node)
         {
             if (_visitRefTypeExpression != null)
-                node = _visitRefTypeExpression.Invoke(this, node);
+            {
+                var visit = _visitRefTypeExpression.Invoke(this, node);
+                return (visit is RefTypeExpressionSyntax newNode) ? base.VisitRefTypeExpression(newNode) : visit;
+            }
             return base.VisitRefTypeExpression(node);
         }
 
@@ -3682,7 +3825,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitRefValueExpression(RefValueExpressionSyntax node)
         {
             if (_visitRefValueExpression != null)
-                node = _visitRefValueExpression.Invoke(this, node);
+            {
+                var visit = _visitRefValueExpression.Invoke(this, node);
+                return (visit is RefValueExpressionSyntax newNode) ? base.VisitRefValueExpression(newNode) : visit;
+            }
             return base.VisitRefValueExpression(node);
         }
 
@@ -3694,7 +3840,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitCheckedExpression(CheckedExpressionSyntax node)
         {
             if (_visitCheckedExpression != null)
-                node = _visitCheckedExpression.Invoke(this, node);
+            {
+                var visit = _visitCheckedExpression.Invoke(this, node);
+                return (visit is CheckedExpressionSyntax newNode) ? base.VisitCheckedExpression(newNode) : visit;
+            }
             return base.VisitCheckedExpression(node);
         }
 
@@ -3706,7 +3855,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitDefaultExpression(DefaultExpressionSyntax node)
         {
             if (_visitDefaultExpression != null)
-                node = _visitDefaultExpression.Invoke(this, node);
+            {
+                var visit = _visitDefaultExpression.Invoke(this, node);
+                return (visit is DefaultExpressionSyntax newNode) ? base.VisitDefaultExpression(newNode) : visit;
+            }
             return base.VisitDefaultExpression(node);
         }
 
@@ -3718,7 +3870,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitTypeOfExpression(TypeOfExpressionSyntax node)
         {
             if (_visitTypeOfExpression != null)
-                node = _visitTypeOfExpression.Invoke(this, node);
+            {
+                var visit = _visitTypeOfExpression.Invoke(this, node);
+                return (visit is TypeOfExpressionSyntax newNode) ? base.VisitTypeOfExpression(newNode) : visit;
+            }
             return base.VisitTypeOfExpression(node);
         }
 
@@ -3730,7 +3885,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitSizeOfExpression(SizeOfExpressionSyntax node)
         {
             if (_visitSizeOfExpression != null)
-                node = _visitSizeOfExpression.Invoke(this, node);
+            {
+                var visit = _visitSizeOfExpression.Invoke(this, node);
+                return (visit is SizeOfExpressionSyntax newNode) ? base.VisitSizeOfExpression(newNode) : visit;
+            }
             return base.VisitSizeOfExpression(node);
         }
 
@@ -3742,7 +3900,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitInvocationExpression(InvocationExpressionSyntax node)
         {
             if (_visitInvocationExpression != null)
-                node = _visitInvocationExpression.Invoke(this, node);
+            {
+                var visit = _visitInvocationExpression.Invoke(this, node);
+                return (visit is InvocationExpressionSyntax newNode) ? base.VisitInvocationExpression(newNode) : visit;
+            }
             return base.VisitInvocationExpression(node);
         }
 
@@ -3754,7 +3915,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitElementAccessExpression(ElementAccessExpressionSyntax node)
         {
             if (_visitElementAccessExpression != null)
-                node = _visitElementAccessExpression.Invoke(this, node);
+            {
+                var visit = _visitElementAccessExpression.Invoke(this, node);
+                return (visit is ElementAccessExpressionSyntax newNode) ? base.VisitElementAccessExpression(newNode) : visit;
+            }
             return base.VisitElementAccessExpression(node);
         }
 
@@ -3766,7 +3930,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitArgumentList(ArgumentListSyntax node)
         {
             if (_visitArgumentList != null)
-                node = _visitArgumentList.Invoke(this, node);
+            {
+                var visit = _visitArgumentList.Invoke(this, node);
+                return (visit is ArgumentListSyntax newNode) ? base.VisitArgumentList(newNode) : visit;
+            }
             return base.VisitArgumentList(node);
         }
 
@@ -3778,7 +3945,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitBracketedArgumentList(BracketedArgumentListSyntax node)
         {
             if (_visitBracketedArgumentList != null)
-                node = _visitBracketedArgumentList.Invoke(this, node);
+            {
+                var visit = _visitBracketedArgumentList.Invoke(this, node);
+                return (visit is BracketedArgumentListSyntax newNode) ? base.VisitBracketedArgumentList(newNode) : visit;
+            }
             return base.VisitBracketedArgumentList(node);
         }
 
@@ -3790,7 +3960,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitArgument(ArgumentSyntax node)
         {
             if (_visitArgument != null)
-                node = _visitArgument.Invoke(this, node);
+            {
+                var visit = _visitArgument.Invoke(this, node);
+                return (visit is ArgumentSyntax newNode) ? base.VisitArgument(newNode) : visit;
+            }
             return base.VisitArgument(node);
         }
 
@@ -3802,7 +3975,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitExpressionColon(ExpressionColonSyntax node)
         {
             if (_visitExpressionColon != null)
-                node = _visitExpressionColon.Invoke(this, node);
+            {
+                var visit = _visitExpressionColon.Invoke(this, node);
+                return (visit is ExpressionColonSyntax newNode) ? base.VisitExpressionColon(newNode) : visit;
+            }
             return base.VisitExpressionColon(node);
         }
 
@@ -3814,7 +3990,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitNameColon(NameColonSyntax node)
         {
             if (_visitNameColon != null)
-                node = _visitNameColon.Invoke(this, node);
+            {
+                var visit = _visitNameColon.Invoke(this, node);
+                return (visit is NameColonSyntax newNode) ? base.VisitNameColon(newNode) : visit;
+            }
             return base.VisitNameColon(node);
         }
 
@@ -3826,7 +4005,12 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitDeclarationExpression(DeclarationExpressionSyntax node)
         {
             if (_visitDeclarationExpression != null)
-                node = _visitDeclarationExpression.Invoke(this, node);
+            {
+                var visit = _visitDeclarationExpression.Invoke(this, node);
+                return (visit is DeclarationExpressionSyntax newNode) ? base.VisitDeclarationExpression(newNode) : visit;
+            }
+
+
             return base.VisitDeclarationExpression(node);
         }
 
@@ -3838,7 +4022,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitCastExpression(CastExpressionSyntax node)
         {
             if (_visitCastExpression != null)
-                node = _visitCastExpression.Invoke(this, node);
+            {
+                var visit = _visitCastExpression.Invoke(this, node);
+                return (visit is CastExpressionSyntax newNode) ? base.VisitCastExpression(newNode) : visit;
+            }
             return base.VisitCastExpression(node);
         }
 
@@ -3850,7 +4037,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitAnonymousMethodExpression(AnonymousMethodExpressionSyntax node)
         {
             if (_visitAnonymousMethodExpression != null)
-                node = _visitAnonymousMethodExpression.Invoke(this, node);
+            {
+                var visit = _visitAnonymousMethodExpression.Invoke(this, node);
+                return (visit is AnonymousMethodExpressionSyntax newNode) ? base.VisitAnonymousMethodExpression(newNode) : visit;
+            }
             return base.VisitAnonymousMethodExpression(node);
         }
 
@@ -3862,7 +4052,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitSimpleLambdaExpression(SimpleLambdaExpressionSyntax node)
         {
             if (_visitSimpleLambdaExpression != null)
-                node = _visitSimpleLambdaExpression.Invoke(this, node);
+            {
+                var visit = _visitSimpleLambdaExpression.Invoke(this, node);
+                return (visit is SimpleLambdaExpressionSyntax newNode) ? base.VisitSimpleLambdaExpression(newNode) : visit;
+            }
             return base.VisitSimpleLambdaExpression(node);
         }
 
@@ -3874,7 +4067,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitRefExpression(RefExpressionSyntax node)
         {
             if (_visitRefExpression != null)
-                node = _visitRefExpression.Invoke(this, node);
+            {
+                var visit = _visitRefExpression.Invoke(this, node);
+                return (visit is RefExpressionSyntax newNode) ? base.VisitRefExpression(newNode) : visit;
+            }
             return base.VisitRefExpression(node);
         }
 
@@ -3886,7 +4082,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitParenthesizedLambdaExpression(ParenthesizedLambdaExpressionSyntax node)
         {
             if (_visitParenthesizedLambdaExpression != null)
-                node = _visitParenthesizedLambdaExpression.Invoke(this, node);
+            {
+                var visit = _visitParenthesizedLambdaExpression.Invoke(this, node);
+                return (visit is ParenthesizedLambdaExpressionSyntax newNode) ? base.VisitParenthesizedLambdaExpression(newNode) : visit;
+            }
             return base.VisitParenthesizedLambdaExpression(node);
         }
 
@@ -3898,7 +4097,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitInitializerExpression(InitializerExpressionSyntax node)
         {
             if (_visitInitializerExpression != null)
-                node = _visitInitializerExpression.Invoke(this, node);
+            {
+                var visit = _visitInitializerExpression.Invoke(this, node);
+                return (visit is InitializerExpressionSyntax newNode) ? base.VisitInitializerExpression(newNode) : visit;
+            }
             return base.VisitInitializerExpression(node);
         }
 
@@ -3910,7 +4112,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitImplicitObjectCreationExpression(ImplicitObjectCreationExpressionSyntax node)
         {
             if (_visitImplicitObjectCreationExpression != null)
-                node = _visitImplicitObjectCreationExpression.Invoke(this, node);
+            {
+                var visit = _visitImplicitObjectCreationExpression.Invoke(this, node);
+                return (visit is ImplicitObjectCreationExpressionSyntax newNode) ? base.VisitImplicitObjectCreationExpression(newNode) : visit;
+            }
             return base.VisitImplicitObjectCreationExpression(node);
         }
 
@@ -3922,7 +4127,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitObjectCreationExpression(ObjectCreationExpressionSyntax node)
         {
             if (_visitObjectCreationExpression != null)
-                node = _visitObjectCreationExpression.Invoke(this, node);
+            {
+                var visit = _visitObjectCreationExpression.Invoke(this, node);
+                return (visit is ObjectCreationExpressionSyntax newNode) ? base.VisitObjectCreationExpression(newNode) : visit;
+            }
             return base.VisitObjectCreationExpression(node);
         }
 
@@ -3934,7 +4142,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitWithExpression(WithExpressionSyntax node)
         {
             if (_visitWithExpression != null)
-                node = _visitWithExpression.Invoke(this, node);
+            {
+                var visit = _visitWithExpression.Invoke(this, node);
+                return (visit is WithExpressionSyntax newNode) ? base.VisitWithExpression(newNode) : visit;
+            }
             return base.VisitWithExpression(node);
         }
 
@@ -3946,7 +4157,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitAnonymousObjectMemberDeclarator(AnonymousObjectMemberDeclaratorSyntax node)
         {
             if (_visitAnonymousObjectMemberDeclarator != null)
-                node = _visitAnonymousObjectMemberDeclarator.Invoke(this, node);
+            {
+                var visit = _visitAnonymousObjectMemberDeclarator.Invoke(this, node);
+                return (visit is AnonymousObjectMemberDeclaratorSyntax newNode) ? base.VisitAnonymousObjectMemberDeclarator(newNode) : visit;
+            }
             return base.VisitAnonymousObjectMemberDeclarator(node);
         }
 
@@ -3958,7 +4172,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitAnonymousObjectCreationExpression(AnonymousObjectCreationExpressionSyntax node)
         {
             if (_visitAnonymousObjectCreationExpression != null)
-                node = _visitAnonymousObjectCreationExpression.Invoke(this, node);
+            {
+                var visit = _visitAnonymousObjectCreationExpression.Invoke(this, node);
+                return (visit is AnonymousObjectCreationExpressionSyntax newNode) ? base.VisitAnonymousObjectCreationExpression(newNode) : visit;
+            }
             return base.VisitAnonymousObjectCreationExpression(node);
         }
 
@@ -3970,7 +4187,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitArrayCreationExpression(ArrayCreationExpressionSyntax node)
         {
             if (_visitArrayCreationExpression != null)
-                node = _visitArrayCreationExpression.Invoke(this, node);
+            {
+                var visit = _visitArrayCreationExpression.Invoke(this, node);
+                return (visit is ArrayCreationExpressionSyntax newNode) ? base.VisitArrayCreationExpression(newNode) : visit;
+            }
             return base.VisitArrayCreationExpression(node);
         }
 
@@ -3982,7 +4202,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitImplicitArrayCreationExpression(ImplicitArrayCreationExpressionSyntax node)
         {
             if (_visitImplicitArrayCreationExpression != null)
-                node = _visitImplicitArrayCreationExpression.Invoke(this, node);
+            {
+                var visit = _visitImplicitArrayCreationExpression.Invoke(this, node);
+                return (visit is ImplicitArrayCreationExpressionSyntax newNode) ? base.VisitImplicitArrayCreationExpression(newNode) : visit;
+            }
             return base.VisitImplicitArrayCreationExpression(node);
         }
 
@@ -3994,7 +4217,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitStackAllocArrayCreationExpression(StackAllocArrayCreationExpressionSyntax node)
         {
             if (_visitStackAllocArrayCreationExpression != null)
-                node = _visitStackAllocArrayCreationExpression.Invoke(this, node);
+            {
+                var visit = _visitStackAllocArrayCreationExpression.Invoke(this, node);
+                return (visit is StackAllocArrayCreationExpressionSyntax newNode) ? base.VisitStackAllocArrayCreationExpression(newNode) : visit;
+            }
             return base.VisitStackAllocArrayCreationExpression(node);
         }
 
@@ -4006,7 +4232,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitImplicitStackAllocArrayCreationExpression(ImplicitStackAllocArrayCreationExpressionSyntax node)
         {
             if (_visitImplicitStackAllocArrayCreationExpression != null)
-                node = _visitImplicitStackAllocArrayCreationExpression.Invoke(this, node);
+            {
+                var visit = _visitImplicitStackAllocArrayCreationExpression.Invoke(this, node);
+                return (visit is ImplicitStackAllocArrayCreationExpressionSyntax newNode) ? base.VisitImplicitStackAllocArrayCreationExpression(newNode) : visit;
+            }
             return base.VisitImplicitStackAllocArrayCreationExpression(node);
         }
 
@@ -4018,7 +4247,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitCollectionExpression(CollectionExpressionSyntax node)
         {
             if (_visitCollectionExpression != null)
-                node = _visitCollectionExpression.Invoke(this, node);
+            {
+                var visit = _visitCollectionExpression.Invoke(this, node);
+                return (visit is CollectionExpressionSyntax newNode) ? base.VisitCollectionExpression(newNode) : visit;
+            }
             return base.VisitCollectionExpression(node);
         }
 
@@ -4030,7 +4262,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitExpressionElement(ExpressionElementSyntax node)
         {
             if (_visitExpressionElement != null)
-                node = _visitExpressionElement.Invoke(this, node);
+            {
+                var visit = _visitExpressionElement.Invoke(this, node);
+                return (visit is ExpressionElementSyntax newNode) ? base.VisitExpressionElement(newNode) : visit;
+            }
             return base.VisitExpressionElement(node);
         }
 
@@ -4042,7 +4277,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitSpreadElement(SpreadElementSyntax node)
         {
             if (_visitSpreadElement != null)
-                node = _visitSpreadElement.Invoke(this, node);
+            {
+                var visit = _visitSpreadElement.Invoke(this, node);
+                return (visit is SpreadElementSyntax newNode) ? base.VisitSpreadElement(newNode) : visit;
+            }
             return base.VisitSpreadElement(node);
         }
 
@@ -4054,7 +4292,12 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitQueryExpression(QueryExpressionSyntax node)
         {
             if (_visitQueryExpression != null)
-                node = _visitQueryExpression.Invoke(this, node);
+            {
+                var visit = _visitQueryExpression.Invoke(this, node);
+
+
+                return (visit is QueryExpressionSyntax newNode) ? base.VisitQueryExpression(newNode) : visit;
+            }
             return base.VisitQueryExpression(node);
         }
 
@@ -4066,7 +4309,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitQueryBody(QueryBodySyntax node)
         {
             if (_visitQueryBody != null)
-                node = _visitQueryBody.Invoke(this, node);
+            {
+                var visit = _visitQueryBody.Invoke(this, node);
+                return (visit is QueryBodySyntax newNode) ? base.VisitQueryBody(newNode) : visit;
+            }
             return base.VisitQueryBody(node);
         }
 
@@ -4078,7 +4324,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitFromClause(FromClauseSyntax node)
         {
             if (_visitFromClause != null)
-                node = _visitFromClause.Invoke(this, node);
+            {
+                var visit = _visitFromClause.Invoke(this, node);
+                return (visit is FromClauseSyntax newNode) ? base.VisitFromClause(newNode) : visit;
+            }
             return base.VisitFromClause(node);
         }
 
@@ -4090,7 +4339,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitLetClause(LetClauseSyntax node)
         {
             if (_visitLetClause != null)
-                node = _visitLetClause.Invoke(this, node);
+            {
+                var visit = _visitLetClause.Invoke(this, node);
+                return (visit is LetClauseSyntax newNode) ? base.VisitLetClause(newNode) : visit;
+            }
             return base.VisitLetClause(node);
         }
 
@@ -4102,7 +4354,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitJoinClause(JoinClauseSyntax node)
         {
             if (_visitJoinClause != null)
-                node = _visitJoinClause.Invoke(this, node);
+            {
+                var visit = _visitJoinClause.Invoke(this, node);
+                return (visit is JoinClauseSyntax newNode) ? base.VisitJoinClause(newNode) : visit;
+            }
             return base.VisitJoinClause(node);
         }
 
@@ -4114,7 +4369,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitJoinIntoClause(JoinIntoClauseSyntax node)
         {
             if (_visitJoinIntoClause != null)
-                node = _visitJoinIntoClause.Invoke(this, node);
+            {
+                var visit = _visitJoinIntoClause.Invoke(this, node);
+                return (visit is JoinIntoClauseSyntax newNode) ? base.VisitJoinIntoClause(newNode) : visit;
+            }
             return base.VisitJoinIntoClause(node);
         }
 
@@ -4123,12 +4381,13 @@ namespace FluentSyntaxRewriter
         /// </summary>
         /// <param name="node">The where clause syntax node to visit.</param>
         /// <returns>The visited where clause syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitWhereClause(WhereClauseSyntax
-
-         node)
+        public override SyntaxNode VisitWhereClause(WhereClauseSyntax node)
         {
             if (_visitWhereClause != null)
-                node = _visitWhereClause.Invoke(this, node);
+            {
+                var visit = _visitWhereClause.Invoke(this, node);
+                return (visit is WhereClauseSyntax newNode) ? base.VisitWhereClause(newNode) : visit;
+            }
             return base.VisitWhereClause(node);
         }
 
@@ -4140,7 +4399,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitOrderByClause(OrderByClauseSyntax node)
         {
             if (_visitOrderByClause != null)
-                node = _visitOrderByClause.Invoke(this, node);
+            {
+                var visit = _visitOrderByClause.Invoke(this, node);
+                return (visit is OrderByClauseSyntax newNode) ? base.VisitOrderByClause(newNode) : visit;
+            }
             return base.VisitOrderByClause(node);
         }
 
@@ -4152,7 +4414,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitOrdering(OrderingSyntax node)
         {
             if (_visitOrdering != null)
-                node = _visitOrdering.Invoke(this, node);
+            {
+                var visit = _visitOrdering.Invoke(this, node);
+                return (visit is OrderingSyntax newNode) ? base.VisitOrdering(newNode) : visit;
+            }
             return base.VisitOrdering(node);
         }
 
@@ -4164,7 +4429,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitSelectClause(SelectClauseSyntax node)
         {
             if (_visitSelectClause != null)
-                node = _visitSelectClause.Invoke(this, node);
+            {
+                var visit = _visitSelectClause.Invoke(this, node);
+                return (visit is SelectClauseSyntax newNode) ? base.VisitSelectClause(newNode) : visit;
+            }
             return base.VisitSelectClause(node);
         }
 
@@ -4176,7 +4444,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitGroupClause(GroupClauseSyntax node)
         {
             if (_visitGroupClause != null)
-                node = _visitGroupClause.Invoke(this, node);
+            {
+                var visit = _visitGroupClause.Invoke(this, node);
+                return (visit is GroupClauseSyntax newNode) ? base.VisitGroupClause(newNode) : visit;
+            }
             return base.VisitGroupClause(node);
         }
 
@@ -4188,7 +4459,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitQueryContinuation(QueryContinuationSyntax node)
         {
             if (_visitQueryContinuation != null)
-                node = _visitQueryContinuation.Invoke(this, node);
+            {
+                var visit = _visitQueryContinuation.Invoke(this, node);
+                return (visit is QueryContinuationSyntax newNode) ? base.VisitQueryContinuation(newNode) : visit;
+            }
             return base.VisitQueryContinuation(node);
         }
 
@@ -4200,7 +4474,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitOmittedArraySizeExpression(OmittedArraySizeExpressionSyntax node)
         {
             if (_visitOmittedArraySizeExpression != null)
-                node = _visitOmittedArraySizeExpression.Invoke(this, node);
+            {
+                var visit = _visitOmittedArraySizeExpression.Invoke(this, node);
+                return (visit is OmittedArraySizeExpressionSyntax newNode) ? base.VisitOmittedArraySizeExpression(newNode) : visit;
+            }
             return base.VisitOmittedArraySizeExpression(node);
         }
 
@@ -4212,7 +4489,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitInterpolatedStringExpression(InterpolatedStringExpressionSyntax node)
         {
             if (_visitInterpolatedStringExpression != null)
-                node = _visitInterpolatedStringExpression.Invoke(this, node);
+            {
+                var visit = _visitInterpolatedStringExpression.Invoke(this, node);
+                return (visit is InterpolatedStringExpressionSyntax newNode) ? base.VisitInterpolatedStringExpression(newNode) : visit;
+            }
             return base.VisitInterpolatedStringExpression(node);
         }
 
@@ -4224,7 +4504,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitIsPatternExpression(IsPatternExpressionSyntax node)
         {
             if (_visitIsPatternExpression != null)
-                node = _visitIsPatternExpression.Invoke(this, node);
+            {
+                var visit = _visitIsPatternExpression.Invoke(this, node);
+                return (visit is IsPatternExpressionSyntax newNode) ? base.VisitIsPatternExpression(newNode) : visit;
+            }
             return base.VisitIsPatternExpression(node);
         }
 
@@ -4236,7 +4519,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitThrowExpression(ThrowExpressionSyntax node)
         {
             if (_visitThrowExpression != null)
-                node = _visitThrowExpression.Invoke(this, node);
+            {
+                var visit = _visitThrowExpression.Invoke(this, node);
+                return (visit is ThrowExpressionSyntax newNode) ? base.VisitThrowExpression(newNode) : visit;
+            }
             return base.VisitThrowExpression(node);
         }
 
@@ -4248,7 +4534,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitWhenClause(WhenClauseSyntax node)
         {
             if (_visitWhenClause != null)
-                node = _visitWhenClause.Invoke(this, node);
+            {
+                var visit = _visitWhenClause.Invoke(this, node);
+                return (visit is WhenClauseSyntax newNode) ? base.VisitWhenClause(newNode) : visit;
+            }
             return base.VisitWhenClause(node);
         }
 
@@ -4260,7 +4549,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitDiscardPattern(DiscardPatternSyntax node)
         {
             if (_visitDiscardPattern != null)
-                node = _visitDiscardPattern.Invoke(this, node);
+            {
+                var visit = _visitDiscardPattern.Invoke(this, node);
+                return (visit is DiscardPatternSyntax newNode) ? base.VisitDiscardPattern(newNode) : visit;
+            }
             return base.VisitDiscardPattern(node);
         }
 
@@ -4272,7 +4564,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitDeclarationPattern(DeclarationPatternSyntax node)
         {
             if (_visitDeclarationPattern != null)
-                node = _visitDeclarationPattern.Invoke(this, node);
+            {
+                var visit = _visitDeclarationPattern.Invoke(this, node);
+                return (visit is DeclarationPatternSyntax newNode) ? base.VisitDeclarationPattern(newNode) : visit;
+            }
             return base.VisitDeclarationPattern(node);
         }
 
@@ -4284,7 +4579,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitVarPattern(VarPatternSyntax node)
         {
             if (_visitVarPattern != null)
-                node = _visitVarPattern.Invoke(this, node);
+            {
+                var visit = _visitVarPattern.Invoke(this, node);
+                return (visit is VarPatternSyntax newNode) ? base.VisitVarPattern(newNode) : visit;
+            }
             return base.VisitVarPattern(node);
         }
 
@@ -4296,7 +4594,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitRecursivePattern(RecursivePatternSyntax node)
         {
             if (_visitRecursivePattern != null)
-                node = _visitRecursivePattern.Invoke(this, node);
+            {
+                var visit = _visitRecursivePattern.Invoke(this, node);
+                return (visit is RecursivePatternSyntax newNode) ? base.VisitRecursivePattern(newNode) : visit;
+            }
             return base.VisitRecursivePattern(node);
         }
 
@@ -4308,7 +4609,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitPositionalPatternClause(PositionalPatternClauseSyntax node)
         {
             if (_visitPositionalPatternClause != null)
-                node = _visitPositionalPatternClause.Invoke(this, node);
+            {
+                var visit = _visitPositionalPatternClause.Invoke(this, node);
+                return (visit is PositionalPatternClauseSyntax newNode) ? base.VisitPositionalPatternClause(newNode) : visit;
+            }
             return base.VisitPositionalPatternClause(node);
         }
 
@@ -4320,7 +4624,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitPropertyPatternClause(PropertyPatternClauseSyntax node)
         {
             if (_visitPropertyPatternClause != null)
-                node = _visitPropertyPatternClause.Invoke(this, node);
+            {
+                var visit = _visitPropertyPatternClause.Invoke(this, node);
+                return (visit is PropertyPatternClauseSyntax newNode) ? base.VisitPropertyPatternClause(newNode) : visit;
+            }
             return base.VisitPropertyPatternClause(node);
         }
 
@@ -4332,7 +4639,12 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitSubpattern(SubpatternSyntax node)
         {
             if (_visitSubpattern != null)
-                node = _visitSubpattern.Invoke(this, node);
+            {
+                var visit = _visitSubpattern.Invoke(this, node);
+                return (visit is SubpatternSyntax newNode) ? base.VisitSubpattern(newNode) : visit;
+
+
+            }
             return base.VisitSubpattern(node);
         }
 
@@ -4344,7 +4656,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitConstantPattern(ConstantPatternSyntax node)
         {
             if (_visitConstantPattern != null)
-                node = _visitConstantPattern.Invoke(this, node);
+            {
+                var visit = _visitConstantPattern.Invoke(this, node);
+                return (visit is ConstantPatternSyntax newNode) ? base.VisitConstantPattern(newNode) : visit;
+            }
             return base.VisitConstantPattern(node);
         }
 
@@ -4356,7 +4671,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitParenthesizedPattern(ParenthesizedPatternSyntax node)
         {
             if (_visitParenthesizedPattern != null)
-                node = _visitParenthesizedPattern.Invoke(this, node);
+            {
+                var visit = _visitParenthesizedPattern.Invoke(this, node);
+                return (visit is ParenthesizedPatternSyntax newNode) ? base.VisitParenthesizedPattern(newNode) : visit;
+            }
             return base.VisitParenthesizedPattern(node);
         }
 
@@ -4368,7 +4686,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitRelationalPattern(RelationalPatternSyntax node)
         {
             if (_visitRelationalPattern != null)
-                node = _visitRelationalPattern.Invoke(this, node);
+            {
+                var visit = _visitRelationalPattern.Invoke(this, node);
+                return (visit is RelationalPatternSyntax newNode) ? base.VisitRelationalPattern(newNode) : visit;
+            }
             return base.VisitRelationalPattern(node);
         }
 
@@ -4380,7 +4701,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitTypePattern(TypePatternSyntax node)
         {
             if (_visitTypePattern != null)
-                node = _visitTypePattern.Invoke(this, node);
+            {
+                var visit = _visitTypePattern.Invoke(this, node);
+                return (visit is TypePatternSyntax newNode) ? base.VisitTypePattern(newNode) : visit;
+            }
             return base.VisitTypePattern(node);
         }
 
@@ -4392,7 +4716,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitBinaryPattern(BinaryPatternSyntax node)
         {
             if (_visitBinaryPattern != null)
-                node = _visitBinaryPattern.Invoke(this, node);
+            {
+                var visit = _visitBinaryPattern.Invoke(this, node);
+                return (visit is BinaryPatternSyntax newNode) ? base.VisitBinaryPattern(newNode) : visit;
+            }
             return base.VisitBinaryPattern(node);
         }
 
@@ -4404,7 +4731,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitUnaryPattern(UnaryPatternSyntax node)
         {
             if (_visitUnaryPattern != null)
-                node = _visitUnaryPattern.Invoke(this, node);
+            {
+                var visit = _visitUnaryPattern.Invoke(this, node);
+                return (visit is UnaryPatternSyntax newNode) ? base.VisitUnaryPattern(newNode) : visit;
+            }
             return base.VisitUnaryPattern(node);
         }
 
@@ -4416,7 +4746,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitListPattern(ListPatternSyntax node)
         {
             if (_visitListPattern != null)
-                node = _visitListPattern.Invoke(this, node);
+            {
+                var visit = _visitListPattern.Invoke(this, node);
+                return (visit is ListPatternSyntax newNode) ? base.VisitListPattern(newNode) : visit;
+            }
             return base.VisitListPattern(node);
         }
 
@@ -4428,7 +4761,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitSlicePattern(SlicePatternSyntax node)
         {
             if (_visitSlicePattern != null)
-                node = _visitSlicePattern.Invoke(this, node);
+            {
+                var visit = _visitSlicePattern.Invoke(this, node);
+                return (visit is SlicePatternSyntax newNode) ? base.VisitSlicePattern(newNode) : visit;
+            }
             return base.VisitSlicePattern(node);
         }
 
@@ -4440,7 +4776,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitInterpolatedStringText(InterpolatedStringTextSyntax node)
         {
             if (_visitInterpolatedStringText != null)
-                node = _visitInterpolatedStringText.Invoke(this, node);
+            {
+                var visit = _visitInterpolatedStringText.Invoke(this, node);
+                return (visit is InterpolatedStringTextSyntax newNode) ? base.VisitInterpolatedStringText(newNode) : visit;
+            }
             return base.VisitInterpolatedStringText(node);
         }
 
@@ -4452,7 +4791,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitInterpolation(InterpolationSyntax node)
         {
             if (_visitInterpolation != null)
-                node = _visitInterpolation.Invoke(this, node);
+            {
+                var visit = _visitInterpolation.Invoke(this, node);
+                return (visit is InterpolationSyntax newNode) ? base.VisitInterpolation(newNode) : visit;
+            }
             return base.VisitInterpolation(node);
         }
 
@@ -4464,7 +4806,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitInterpolationAlignmentClause(InterpolationAlignmentClauseSyntax node)
         {
             if (_visitInterpolationAlignmentClause != null)
-                node = _visitInterpolationAlignmentClause.Invoke(this, node);
+            {
+                var visit = _visitInterpolationAlignmentClause.Invoke(this, node);
+                return (visit is InterpolationAlignmentClauseSyntax newNode) ? base.VisitInterpolationAlignmentClause(newNode) : visit;
+            }
             return base.VisitInterpolationAlignmentClause(node);
         }
 
@@ -4476,7 +4821,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitInterpolationFormatClause(InterpolationFormatClauseSyntax node)
         {
             if (_visitInterpolationFormatClause != null)
-                node = _visitInterpolationFormatClause.Invoke(this, node);
+            {
+                var visit = _visitInterpolationFormatClause.Invoke(this, node);
+                return (visit is InterpolationFormatClauseSyntax newNode) ? base.VisitInterpolationFormatClause(newNode) : visit;
+            }
             return base.VisitInterpolationFormatClause(node);
         }
 
@@ -4488,7 +4836,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitGlobalStatement(GlobalStatementSyntax node)
         {
             if (_visitGlobalStatement != null)
-                node = _visitGlobalStatement.Invoke(this, node);
+            {
+                var visit = _visitGlobalStatement.Invoke(this, node);
+                return (visit is GlobalStatementSyntax newNode) ? base.VisitGlobalStatement(newNode) : visit;
+            }
             return base.VisitGlobalStatement(node);
         }
 
@@ -4500,7 +4851,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitBlock(BlockSyntax node)
         {
             if (_visitBlock != null)
-                node = _visitBlock.Invoke(this, node);
+            {
+                var visit = _visitBlock.Invoke(this, node);
+                return (visit is BlockSyntax newNode) ? base.VisitBlock(newNode) : visit;
+            }
             return base.VisitBlock(node);
         }
 
@@ -4512,7 +4866,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
         {
             if (_visitLocalFunctionStatement != null)
-                node = _visitLocalFunctionStatement.Invoke(this, node);
+            {
+                var visit = _visitLocalFunctionStatement.Invoke(this, node);
+                return (visit is LocalFunctionStatementSyntax newNode) ? base.VisitLocalFunctionStatement(newNode) : visit;
+            }
             return base.VisitLocalFunctionStatement(node);
         }
 
@@ -4524,7 +4881,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitLocalDeclarationStatement(LocalDeclarationStatementSyntax node)
         {
             if (_visitLocalDeclarationStatement != null)
-                node = _visitLocalDeclarationStatement.Invoke(this, node);
+            {
+                var visit = _visitLocalDeclarationStatement.Invoke(this, node);
+                return (visit is LocalDeclarationStatementSyntax newNode) ? base.VisitLocalDeclarationStatement(newNode) : visit;
+            }
             return base.VisitLocalDeclarationStatement(node);
         }
 
@@ -4536,7 +4896,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitVariableDeclaration(VariableDeclarationSyntax node)
         {
             if (_visitVariableDeclaration != null)
-                node = _visitVariableDeclaration.Invoke(this, node);
+            {
+                var visit = _visitVariableDeclaration.Invoke(this, node);
+                return (visit is VariableDeclarationSyntax newNode) ? base.VisitVariableDeclaration(newNode) : visit;
+            }
             return base.VisitVariableDeclaration(node);
         }
 
@@ -4548,7 +4911,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitVariableDeclarator(VariableDeclaratorSyntax node)
         {
             if (_visitVariableDeclarator != null)
-                node = _visitVariableDeclarator.Invoke(this, node);
+            {
+                var visit = _visitVariableDeclarator.Invoke(this, node);
+                return (visit is VariableDeclaratorSyntax newNode) ? base.VisitVariableDeclarator(newNode) : visit;
+            }
             return base.VisitVariableDeclarator(node);
         }
 
@@ -4560,7 +4926,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitEqualsValueClause(EqualsValueClauseSyntax node)
         {
             if (_visitEqualsValueClause != null)
-                node = _visitEqualsValueClause.Invoke(this, node);
+            {
+                var visit = _visitEqualsValueClause.Invoke(this, node);
+                return (visit is EqualsValueClauseSyntax newNode) ? base.VisitEqualsValueClause(newNode) : visit;
+            }
             return base.VisitEqualsValueClause(node);
         }
 
@@ -4572,7 +4941,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitSingleVariableDesignation(SingleVariableDesignationSyntax node)
         {
             if (_visitSingleVariableDesignation != null)
-                node = _visitSingleVariableDesignation.Invoke(this, node);
+            {
+                var visit = _visitSingleVariableDesignation.Invoke(this, node);
+                return (visit is SingleVariableDesignationSyntax newNode) ? base.VisitSingleVariableDesignation(newNode) : visit;
+            }
             return base.VisitSingleVariableDesignation(node);
         }
 
@@ -4584,7 +4956,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitDiscardDesignation(DiscardDesignationSyntax node)
         {
             if (_visitDiscardDesignation != null)
-                node = _visitDiscardDesignation.Invoke(this, node);
+            {
+                var visit = _visitDiscardDesignation.Invoke(this, node);
+                return (visit is DiscardDesignationSyntax newNode) ? base.VisitDiscardDesignation(newNode) : visit;
+            }
             return base.VisitDiscardDesignation(node);
         }
 
@@ -4596,7 +4971,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitParenthesizedVariableDesignation(ParenthesizedVariableDesignationSyntax node)
         {
             if (_visitParenthesizedVariableDesignation != null)
-                node = _visitParenthesizedVariableDesignation.Invoke(this, node);
+            {
+                var visit = _visitParenthesizedVariableDesignation.Invoke(this, node);
+                return (visit is ParenthesizedVariableDesignationSyntax newNode) ? base.VisitParenthesizedVariableDesignation(newNode) : visit;
+            }
             return base.VisitParenthesizedVariableDesignation(node);
         }
 
@@ -4608,7 +4986,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitExpressionStatement(ExpressionStatementSyntax node)
         {
             if (_visitExpressionStatement != null)
-                node = _visitExpressionStatement.Invoke(this, node);
+            {
+                var visit = _visitExpressionStatement.Invoke(this, node);
+                return (visit is ExpressionStatementSyntax newNode) ? base.VisitExpressionStatement(newNode) : visit;
+            }
             return base.VisitExpressionStatement(node);
         }
 
@@ -4620,7 +5001,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitEmptyStatement(EmptyStatementSyntax node)
         {
             if (_visitEmptyStatement != null)
-                node = _visitEmptyStatement.Invoke(this, node);
+            {
+                var visit = _visitEmptyStatement.Invoke(this, node);
+                return (visit is EmptyStatementSyntax newNode) ? base.VisitEmptyStatement(newNode) : visit;
+            }
             return base.VisitEmptyStatement(node);
         }
 
@@ -4632,7 +5016,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitLabeledStatement(LabeledStatementSyntax node)
         {
             if (_visitLabeledStatement != null)
-                node = _visitLabeledStatement.Invoke(this, node);
+            {
+                var visit = _visitLabeledStatement.Invoke(this, node);
+                return (visit is LabeledStatementSyntax newNode) ? base.VisitLabeledStatement(newNode) : visit;
+            }
             return base.VisitLabeledStatement(node);
         }
 
@@ -4644,7 +5031,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitGotoStatement(GotoStatementSyntax node)
         {
             if (_visitGotoStatement != null)
-                node = _visitGotoStatement.Invoke(this, node);
+            {
+                var visit = _visitGotoStatement.Invoke(this, node);
+                return (visit is GotoStatementSyntax newNode) ? base.VisitGotoStatement(newNode) : visit;
+            }
             return base.VisitGotoStatement(node);
         }
 
@@ -4656,7 +5046,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitBreakStatement(BreakStatementSyntax node)
         {
             if (_visitBreakStatement != null)
-                node = _visitBreakStatement.Invoke(this, node);
+            {
+                var visit = _visitBreakStatement.Invoke(this, node);
+                return (visit is BreakStatementSyntax newNode) ? base.VisitBreakStatement(newNode) : visit;
+            }
             return base.VisitBreakStatement(node);
         }
 
@@ -4668,9 +5061,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitContinueStatement(ContinueStatementSyntax node)
         {
             if (_visitContinueStatement != null)
-                node = _visitContinueStatement.Invoke(this, node
-
-        );
+            {
+                var visit = _visitContinueStatement.Invoke(this, node);
+                return (visit is ContinueStatementSyntax newNode) ? base.VisitContinueStatement(newNode) : visit;
+            }
             return base.VisitContinueStatement(node);
         }
 
@@ -4682,7 +5076,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitReturnStatement(ReturnStatementSyntax node)
         {
             if (_visitReturnStatement != null)
-                node = _visitReturnStatement.Invoke(this, node);
+            {
+                var visit = _visitReturnStatement.Invoke(this, node);
+                return (visit is ReturnStatementSyntax newNode) ? base.VisitReturnStatement(newNode) : visit;
+            }
             return base.VisitReturnStatement(node);
         }
 
@@ -4694,7 +5091,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitThrowStatement(ThrowStatementSyntax node)
         {
             if (_visitThrowStatement != null)
-                node = _visitThrowStatement.Invoke(this, node);
+            {
+                var visit = _visitThrowStatement.Invoke(this, node);
+                return (visit is ThrowStatementSyntax newNode) ? base.VisitThrowStatement(newNode) : visit;
+            }
             return base.VisitThrowStatement(node);
         }
 
@@ -4706,7 +5106,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitYieldStatement(YieldStatementSyntax node)
         {
             if (_visitYieldStatement != null)
-                node = _visitYieldStatement.Invoke(this, node);
+            {
+                var visit = _visitYieldStatement.Invoke(this, node);
+                return (visit is YieldStatementSyntax newNode) ? base.VisitYieldStatement(newNode) : visit;
+            }
             return base.VisitYieldStatement(node);
         }
 
@@ -4718,7 +5121,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitWhileStatement(WhileStatementSyntax node)
         {
             if (_visitWhileStatement != null)
-                node = _visitWhileStatement.Invoke(this, node);
+            {
+                var visit = _visitWhileStatement.Invoke(this, node);
+                return (visit is WhileStatementSyntax newNode) ? base.VisitWhileStatement(newNode) : visit;
+            }
             return base.VisitWhileStatement(node);
         }
 
@@ -4730,7 +5136,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitDoStatement(DoStatementSyntax node)
         {
             if (_visitDoStatement != null)
-                node = _visitDoStatement.Invoke(this, node);
+            {
+                var visit = _visitDoStatement.Invoke(this, node);
+                return (visit is DoStatementSyntax newNode) ? base.VisitDoStatement(newNode) : visit;
+            }
             return base.VisitDoStatement(node);
         }
 
@@ -4742,7 +5151,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitForStatement(ForStatementSyntax node)
         {
             if (_visitForStatement != null)
-                node = _visitForStatement.Invoke(this, node);
+            {
+                var visit = _visitForStatement.Invoke(this, node);
+                return (visit is ForStatementSyntax newNode) ? base.VisitForStatement(newNode) : visit;
+            }
             return base.VisitForStatement(node);
         }
 
@@ -4754,7 +5166,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitForEachStatement(ForEachStatementSyntax node)
         {
             if (_visitForEachStatement != null)
-                node = _visitForEachStatement.Invoke(this, node);
+            {
+                var visit = _visitForEachStatement.Invoke(this, node);
+                return (visit is ForEachStatementSyntax newNode) ? base.VisitForEachStatement(newNode) : visit;
+            }
             return base.VisitForEachStatement(node);
         }
 
@@ -4766,7 +5181,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitForEachVariableStatement(ForEachVariableStatementSyntax node)
         {
             if (_visitForEachVariableStatement != null)
-                node = _visitForEachVariableStatement.Invoke(this, node);
+            {
+                var visit = _visitForEachVariableStatement.Invoke(this, node);
+                return (visit is ForEachVariableStatementSyntax newNode) ? base.VisitForEachVariableStatement(newNode) : visit;
+            }
             return base.VisitForEachVariableStatement(node);
         }
 
@@ -4778,7 +5196,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitUsingStatement(UsingStatementSyntax node)
         {
             if (_visitUsingStatement != null)
-                node = _visitUsingStatement.Invoke(this, node);
+            {
+                var visit = _visitUsingStatement.Invoke(this, node);
+                return (visit is UsingStatementSyntax newNode) ? base.VisitUsingStatement(newNode) : visit;
+            }
             return base.VisitUsingStatement(node);
         }
 
@@ -4790,7 +5211,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitFixedStatement(FixedStatementSyntax node)
         {
             if (_visitFixedStatement != null)
-                node = _visitFixedStatement.Invoke(this, node);
+            {
+                var visit = _visitFixedStatement.Invoke(this, node);
+                return (visit is FixedStatementSyntax newNode) ? base.VisitFixedStatement(newNode) : visit;
+            }
             return base.VisitFixedStatement(node);
         }
 
@@ -4802,7 +5226,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitCheckedStatement(CheckedStatementSyntax node)
         {
             if (_visitCheckedStatement != null)
-                node = _visitCheckedStatement.Invoke(this, node);
+            {
+                var visit = _visitCheckedStatement.Invoke(this, node);
+                return (visit is CheckedStatementSyntax newNode) ? base.VisitCheckedStatement(newNode) : visit;
+            }
             return base.VisitCheckedStatement(node);
         }
 
@@ -4814,7 +5241,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitUnsafeStatement(UnsafeStatementSyntax node)
         {
             if (_visitUnsafeStatement != null)
-                node = _visitUnsafeStatement.Invoke(this, node);
+            {
+                var visit = _visitUnsafeStatement.Invoke(this, node);
+                return (visit is UnsafeStatementSyntax newNode) ? base.VisitUnsafeStatement(newNode) : visit;
+            }
             return base.VisitUnsafeStatement(node);
         }
 
@@ -4826,7 +5256,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitLockStatement(LockStatementSyntax node)
         {
             if (_visitLockStatement != null)
-                node = _visitLockStatement.Invoke(this, node);
+            {
+                var visit = _visitLockStatement.Invoke(this, node);
+                return (visit is LockStatementSyntax newNode) ? base.VisitLockStatement(newNode) : visit;
+            }
             return base.VisitLockStatement(node);
         }
 
@@ -4838,7 +5271,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitIfStatement(IfStatementSyntax node)
         {
             if (_visitIfStatement != null)
-                node = _visitIfStatement.Invoke(this, node);
+            {
+                var visit = _visitIfStatement.Invoke(this, node);
+                return (visit is IfStatementSyntax newNode) ? base.VisitIfStatement(newNode) : visit;
+            }
             return base.VisitIfStatement(node);
         }
 
@@ -4850,7 +5286,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitElseClause(ElseClauseSyntax node)
         {
             if (_visitElseClause != null)
-                node = _visitElseClause.Invoke(this, node);
+            {
+                var visit = _visitElseClause.Invoke(this, node);
+                return (visit is ElseClauseSyntax newNode) ? base.VisitElseClause(newNode) : visit;
+            }
             return base.VisitElseClause(node);
         }
 
@@ -4862,7 +5301,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitSwitchStatement(SwitchStatementSyntax node)
         {
             if (_visitSwitchStatement != null)
-                node = _visitSwitchStatement.Invoke(this, node);
+            {
+                var visit = _visitSwitchStatement.Invoke(this, node);
+                return (visit is SwitchStatementSyntax newNode) ? base.VisitSwitchStatement(newNode) : visit;
+            }
             return base.VisitSwitchStatement(node);
         }
 
@@ -4874,7 +5316,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitSwitchSection(SwitchSectionSyntax node)
         {
             if (_visitSwitchSection != null)
-                node = _visitSwitchSection.Invoke(this, node);
+            {
+                var visit = _visitSwitchSection.Invoke(this, node);
+                return (visit is SwitchSectionSyntax newNode) ? base.VisitSwitchSection(newNode) : visit;
+            }
             return base.VisitSwitchSection(node);
         }
 
@@ -4886,7 +5331,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitCasePatternSwitchLabel(CasePatternSwitchLabelSyntax node)
         {
             if (_visitCasePatternSwitchLabel != null)
-                node = _visitCasePatternSwitchLabel.Invoke(this, node);
+            {
+                var visit = _visitCasePatternSwitchLabel.Invoke(this, node);
+                return (visit is CasePatternSwitchLabelSyntax newNode) ? base.VisitCasePatternSwitchLabel(newNode) : visit;
+            }
             return base.VisitCasePatternSwitchLabel(node);
         }
 
@@ -4898,7 +5346,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitCaseSwitchLabel(CaseSwitchLabelSyntax node)
         {
             if (_visitCaseSwitchLabel != null)
-                node = _visitCaseSwitchLabel.Invoke(this, node);
+            {
+                var visit = _visitCaseSwitchLabel.Invoke(this, node);
+                return (visit is CaseSwitchLabelSyntax newNode) ? base.VisitCaseSwitchLabel(newNode) : visit;
+            }
             return base.VisitCaseSwitchLabel(node);
         }
 
@@ -4910,7 +5361,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitDefaultSwitchLabel(DefaultSwitchLabelSyntax node)
         {
             if (_visitDefaultSwitchLabel != null)
-                node = _visitDefaultSwitchLabel.Invoke(this, node);
+            {
+                var visit = _visitDefaultSwitchLabel.Invoke(this, node);
+                return (visit is DefaultSwitchLabelSyntax newNode) ? base.VisitDefaultSwitchLabel(newNode) : visit;
+            }
             return base.VisitDefaultSwitchLabel(node);
         }
 
@@ -4922,7 +5376,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitSwitchExpression(SwitchExpressionSyntax node)
         {
             if (_visitSwitchExpression != null)
-                node = _visitSwitchExpression.Invoke(this, node);
+            {
+                var visit = _visitSwitchExpression.Invoke(this, node);
+                return (visit is SwitchExpressionSyntax newNode) ? base.VisitSwitchExpression(newNode) : visit;
+            }
             return base.VisitSwitchExpression(node);
         }
 
@@ -4934,7 +5391,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitSwitchExpressionArm(SwitchExpressionArmSyntax node)
         {
             if (_visitSwitchExpressionArm != null)
-                node = _visitSwitchExpressionArm.Invoke(this, node);
+            {
+                var visit = _visitSwitchExpressionArm.Invoke(this, node);
+                return (visit is SwitchExpressionArmSyntax newNode) ? base.VisitSwitchExpressionArm(newNode) : visit;
+            }
             return base.VisitSwitchExpressionArm(node);
         }
 
@@ -4946,9 +5406,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitTryStatement(TryStatementSyntax node)
         {
             if (_visitTryStatement != null)
-
-
-                node = _visitTryStatement.Invoke(this, node);
+            {
+                var visit = _visitTryStatement.Invoke(this, node);
+                return (visit is TryStatementSyntax newNode) ? base.VisitTryStatement(newNode) : visit;
+            }
             return base.VisitTryStatement(node);
         }
 
@@ -4960,7 +5421,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitCatchClause(CatchClauseSyntax node)
         {
             if (_visitCatchClause != null)
-                node = _visitCatchClause.Invoke(this, node);
+            {
+                var visit = _visitCatchClause.Invoke(this, node);
+                return (visit is CatchClauseSyntax newNode) ? base.VisitCatchClause(newNode) : visit;
+            }
             return base.VisitCatchClause(node);
         }
 
@@ -4972,7 +5436,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitCatchDeclaration(CatchDeclarationSyntax node)
         {
             if (_visitCatchDeclaration != null)
-                node = _visitCatchDeclaration.Invoke(this, node);
+            {
+                var visit = _visitCatchDeclaration.Invoke(this, node);
+                return (visit is CatchDeclarationSyntax newNode) ? base.VisitCatchDeclaration(newNode) : visit;
+            }
             return base.VisitCatchDeclaration(node);
         }
 
@@ -4984,7 +5451,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitCatchFilterClause(CatchFilterClauseSyntax node)
         {
             if (_visitCatchFilterClause != null)
-                node = _visitCatchFilterClause.Invoke(this, node);
+            {
+                var visit = _visitCatchFilterClause.Invoke(this, node);
+                return (visit is CatchFilterClauseSyntax newNode) ? base.VisitCatchFilterClause(newNode) : visit;
+            }
             return base.VisitCatchFilterClause(node);
         }
 
@@ -4996,7 +5466,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitFinallyClause(FinallyClauseSyntax node)
         {
             if (_visitFinallyClause != null)
-                node = _visitFinallyClause.Invoke(this, node);
+            {
+                var visit = _visitFinallyClause.Invoke(this, node);
+                return (visit is FinallyClauseSyntax newNode) ? base.VisitFinallyClause(newNode) : visit;
+            }
             return base.VisitFinallyClause(node);
         }
 
@@ -5008,7 +5481,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitCompilationUnit(CompilationUnitSyntax node)
         {
             if (_visitCompilationUnit != null)
-                node = _visitCompilationUnit.Invoke(this, node);
+            {
+                var visit = _visitCompilationUnit.Invoke(this, node);
+                return (visit is CompilationUnitSyntax newNode) ? base.VisitCompilationUnit(newNode) : visit;
+            }
             return base.VisitCompilationUnit(node);
         }
 
@@ -5020,7 +5496,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitExternAliasDirective(ExternAliasDirectiveSyntax node)
         {
             if (_visitExternAliasDirective != null)
-                node = _visitExternAliasDirective.Invoke(this, node);
+            {
+                var visit = _visitExternAliasDirective.Invoke(this, node);
+                return (visit is ExternAliasDirectiveSyntax newNode) ? base.VisitExternAliasDirective(newNode) : visit;
+            }
             return base.VisitExternAliasDirective(node);
         }
 
@@ -5032,7 +5511,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitUsingDirective(UsingDirectiveSyntax node)
         {
             if (_visitUsingDirective != null)
-                node = _visitUsingDirective.Invoke(this, node);
+            {
+                var visit = _visitUsingDirective.Invoke(this, node);
+                return (visit is UsingDirectiveSyntax newNode) ? base.VisitUsingDirective(newNode) : visit;
+            }
             return base.VisitUsingDirective(node);
         }
 
@@ -5044,7 +5526,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitNamespaceDeclaration(NamespaceDeclarationSyntax node)
         {
             if (_visitNamespaceDeclaration != null)
-                node = _visitNamespaceDeclaration.Invoke(this, node);
+            {
+                var visit = _visitNamespaceDeclaration.Invoke(this, node);
+                return (visit is NamespaceDeclarationSyntax newNode) ? base.VisitNamespaceDeclaration(newNode) : visit;
+            }
             return base.VisitNamespaceDeclaration(node);
         }
 
@@ -5056,7 +5541,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitFileScopedNamespaceDeclaration(FileScopedNamespaceDeclarationSyntax node)
         {
             if (_visitFileScopedNamespaceDeclaration != null)
-                node = _visitFileScopedNamespaceDeclaration.Invoke(this, node);
+            {
+                var visit = _visitFileScopedNamespaceDeclaration.Invoke(this, node);
+                return (visit is FileScopedNamespaceDeclarationSyntax newNode) ? base.VisitFileScopedNamespaceDeclaration(newNode) : visit;
+            }
             return base.VisitFileScopedNamespaceDeclaration(node);
         }
 
@@ -5068,7 +5556,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitAttributeList(AttributeListSyntax node)
         {
             if (_visitAttributeList != null)
-                node = _visitAttributeList.Invoke(this, node);
+            {
+                var visit = _visitAttributeList.Invoke(this, node);
+                return (visit is AttributeListSyntax newNode) ? base.VisitAttributeList(newNode) : visit;
+            }
             return base.VisitAttributeList(node);
         }
 
@@ -5080,7 +5571,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitAttributeTargetSpecifier(AttributeTargetSpecifierSyntax node)
         {
             if (_visitAttributeTargetSpecifier != null)
-                node = _visitAttributeTargetSpecifier.Invoke(this, node);
+            {
+                var visit = _visitAttributeTargetSpecifier.Invoke(this, node);
+                return (visit is AttributeTargetSpecifierSyntax newNode) ? base.VisitAttributeTargetSpecifier(newNode) : visit;
+            }
             return base.VisitAttributeTargetSpecifier(node);
         }
 
@@ -5092,7 +5586,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitAttribute(AttributeSyntax node)
         {
             if (_visitAttribute != null)
-                node = _visitAttribute.Invoke(this, node);
+            {
+                var visit = _visitAttribute.Invoke(this, node);
+                return (visit is AttributeSyntax newNode) ? base.VisitAttribute(newNode) : visit;
+            }
             return base.VisitAttribute(node);
         }
 
@@ -5104,7 +5601,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitAttributeArgumentList(AttributeArgumentListSyntax node)
         {
             if (_visitAttributeArgumentList != null)
-                node = _visitAttributeArgumentList.Invoke(this, node);
+            {
+                var visit = _visitAttributeArgumentList.Invoke(this, node);
+                return (visit is AttributeArgumentListSyntax newNode) ? base.VisitAttributeArgumentList(newNode) : visit;
+            }
             return base.VisitAttributeArgumentList(node);
         }
 
@@ -5116,7 +5616,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitAttributeArgument(AttributeArgumentSyntax node)
         {
             if (_visitAttributeArgument != null)
-                node = _visitAttributeArgument.Invoke(this, node);
+            {
+                var visit = _visitAttributeArgument.Invoke(this, node);
+                return (visit is AttributeArgumentSyntax newNode) ? base.VisitAttributeArgument(newNode) : visit;
+            }
             return base.VisitAttributeArgument(node);
         }
 
@@ -5128,7 +5631,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitNameEquals(NameEqualsSyntax node)
         {
             if (_visitNameEquals != null)
-                node = _visitNameEquals.Invoke(this, node);
+            {
+                var visit = _visitNameEquals.Invoke(this, node);
+                return (visit is NameEqualsSyntax newNode) ? base.VisitNameEquals(newNode) : visit;
+            }
             return base.VisitNameEquals(node);
         }
 
@@ -5140,7 +5646,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitTypeParameterList(TypeParameterListSyntax node)
         {
             if (_visitTypeParameterList != null)
-                node = _visitTypeParameterList.Invoke(this, node);
+            {
+                var visit = _visitTypeParameterList.Invoke(this, node);
+                return (visit is TypeParameterListSyntax newNode) ? base.VisitTypeParameterList(newNode) : visit;
+            }
             return base.VisitTypeParameterList(node);
         }
 
@@ -5152,7 +5661,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitTypeParameter(TypeParameterSyntax node)
         {
             if (_visitTypeParameter != null)
-                node = _visitTypeParameter.Invoke(this, node);
+            {
+                var visit = _visitTypeParameter.Invoke(this, node);
+                return (visit is TypeParameterSyntax newNode) ? base.VisitTypeParameter(newNode) : visit;
+            }
             return base.VisitTypeParameter(node);
         }
 
@@ -5164,7 +5676,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitClassDeclaration(ClassDeclarationSyntax node)
         {
             if (_visitClassDeclaration != null)
-                node = _visitClassDeclaration.Invoke(this, node);
+            {
+                var visit = _visitClassDeclaration.Invoke(this, node);
+                return (visit is ClassDeclarationSyntax newNode) ? base.VisitClassDeclaration(newNode) : visit;
+            }
             return base.VisitClassDeclaration(node);
         }
 
@@ -5176,7 +5691,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitStructDeclaration(StructDeclarationSyntax node)
         {
             if (_visitStructDeclaration != null)
-                node = _visitStructDeclaration.Invoke(this, node);
+            {
+                var visit = _visitStructDeclaration.Invoke(this, node);
+                return (visit is StructDeclarationSyntax newNode) ? base.VisitStructDeclaration(newNode) : visit;
+            }
             return base.VisitStructDeclaration(node);
         }
 
@@ -5188,7 +5706,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitInterfaceDeclaration(InterfaceDeclarationSyntax node)
         {
             if (_visitInterfaceDeclaration != null)
-                node = _visitInterfaceDeclaration.Invoke(this, node);
+            {
+                var visit = _visitInterfaceDeclaration.Invoke(this, node);
+                return (visit is InterfaceDeclarationSyntax newNode) ? base.VisitInterfaceDeclaration(newNode) : visit;
+            }
             return base.VisitInterfaceDeclaration(node);
         }
 
@@ -5200,7 +5721,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitRecordDeclaration(RecordDeclarationSyntax node)
         {
             if (_visitRecordDeclaration != null)
-                node = _visitRecordDeclaration.Invoke(this, node);
+            {
+                var visit = _visitRecordDeclaration.Invoke(this, node);
+                return (visit is RecordDeclarationSyntax newNode) ? base.VisitRecordDeclaration(newNode) : visit;
+            }
             return base.VisitRecordDeclaration(node);
         }
 
@@ -5212,7 +5736,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitEnumDeclaration(EnumDeclarationSyntax node)
         {
             if (_visitEnumDeclaration != null)
-                node = _visitEnumDeclaration.Invoke(this, node);
+            {
+                var visit = _visitEnumDeclaration.Invoke(this, node);
+                return (visit is EnumDeclarationSyntax newNode) ? base.VisitEnumDeclaration(newNode) : visit;
+            }
             return base.VisitEnumDeclaration(node);
         }
 
@@ -5224,7 +5751,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitDelegateDeclaration(DelegateDeclarationSyntax node)
         {
             if (_visitDelegateDeclaration != null)
-                node = _visitDelegateDeclaration.Invoke(this, node);
+            {
+                var visit = _visitDelegateDeclaration.Invoke(this, node);
+                return (visit is DelegateDeclarationSyntax newNode) ? base.VisitDelegateDeclaration(newNode) : visit;
+            }
             return base.VisitDelegateDeclaration(node);
         }
 
@@ -5236,7 +5766,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitEnumMemberDeclaration(EnumMemberDeclarationSyntax node)
         {
             if (_visitEnumMemberDeclaration != null)
-                node = _visitEnumMemberDeclaration.Invoke(this, node);
+            {
+                var visit = _visitEnumMemberDeclaration.Invoke(this, node);
+                return (visit is EnumMemberDeclarationSyntax newNode) ? base.VisitEnumMemberDeclaration(newNode) : visit;
+            }
             return base.VisitEnumMemberDeclaration(node);
         }
 
@@ -5248,7 +5781,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitBaseList(BaseListSyntax node)
         {
             if (_visitBaseList != null)
-                node = _visitBaseList.Invoke(this, node);
+            {
+                var visit = _visitBaseList.Invoke(this, node);
+                return (visit is BaseListSyntax newNode) ? base.VisitBaseList(newNode) : visit;
+            }
             return base.VisitBaseList(node);
         }
 
@@ -5260,7 +5796,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitSimpleBaseType(SimpleBaseTypeSyntax node)
         {
             if (_visitSimpleBaseType != null)
-                node = _visitSimpleBaseType.Invoke(this, node);
+            {
+                var visit = _visitSimpleBaseType.Invoke(this, node);
+                return (visit is SimpleBaseTypeSyntax newNode) ? base.VisitSimpleBaseType(newNode) : visit;
+            }
             return base.VisitSimpleBaseType(node);
         }
 
@@ -5272,7 +5811,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitPrimaryConstructorBaseType(PrimaryConstructorBaseTypeSyntax node)
         {
             if (_visitPrimaryConstructorBaseType != null)
-                node = _visitPrimaryConstructorBaseType.Invoke(this, node);
+            {
+                var visit = _visitPrimaryConstructorBaseType.Invoke(this, node);
+                return (visit is PrimaryConstructorBaseTypeSyntax newNode) ? base.VisitPrimaryConstructorBaseType(newNode) : visit;
+            }
             return base.VisitPrimaryConstructorBaseType(node);
         }
 
@@ -5284,7 +5826,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitTypeParameterConstraintClause(TypeParameterConstraintClauseSyntax node)
         {
             if (_visitTypeParameterConstraintClause != null)
-                node = _visitTypeParameterConstraintClause.Invoke(this, node);
+            {
+                var visit = _visitTypeParameterConstraintClause.Invoke(this, node);
+                return (visit is TypeParameterConstraintClauseSyntax newNode) ? base.VisitTypeParameterConstraintClause(newNode) : visit;
+            }
             return base.VisitTypeParameterConstraintClause(node);
         }
 
@@ -5296,7 +5841,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitConstructorConstraint(ConstructorConstraintSyntax node)
         {
             if (_visitConstructorConstraint != null)
-                node = _visitConstructorConstraint.Invoke(this, node);
+            {
+                var visit = _visitConstructorConstraint.Invoke(this, node);
+                return (visit is ConstructorConstraintSyntax newNode) ? base.VisitConstructorConstraint(newNode) : visit;
+            }
             return base.VisitConstructorConstraint(node);
         }
 
@@ -5308,7 +5856,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitClassOrStructConstraint(ClassOrStructConstraintSyntax node)
         {
             if (_visitClassOrStructConstraint != null)
-                node = _visitClassOrStructConstraint.Invoke(this, node);
+            {
+                var visit = _visitClassOrStructConstraint.Invoke(this, node);
+                return (visit is ClassOrStructConstraintSyntax newNode) ? base.VisitClassOrStructConstraint(newNode) : visit;
+            }
             return base.VisitClassOrStructConstraint(node);
         }
 
@@ -5320,7 +5871,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitTypeConstraint(TypeConstraintSyntax node)
         {
             if (_visitTypeConstraint != null)
-                node = _visitTypeConstraint.Invoke(this, node);
+            {
+                var visit = _visitTypeConstraint.Invoke(this, node);
+                return (visit is TypeConstraintSyntax newNode) ? base.VisitTypeConstraint(newNode) : visit;
+            }
             return base.VisitTypeConstraint(node);
         }
 
@@ -5332,7 +5886,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitDefaultConstraint(DefaultConstraintSyntax node)
         {
             if (_visitDefaultConstraint != null)
-                node = _visitDefaultConstraint.Invoke(this, node);
+            {
+                var visit = _visitDefaultConstraint.Invoke(this, node);
+                return (visit is DefaultConstraintSyntax newNode) ? base.VisitDefaultConstraint(newNode) : visit;
+            }
             return base.VisitDefaultConstraint(node);
         }
 
@@ -5344,7 +5901,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitFieldDeclaration(FieldDeclarationSyntax node)
         {
             if (_visitFieldDeclaration != null)
-                node = _visitFieldDeclaration.Invoke(this, node);
+            {
+                var visit = _visitFieldDeclaration.Invoke(this, node);
+                return (visit is FieldDeclarationSyntax newNode) ? base.VisitFieldDeclaration(newNode) : visit;
+            }
             return base.VisitFieldDeclaration(node);
         }
 
@@ -5356,7 +5916,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitEventFieldDeclaration(EventFieldDeclarationSyntax node)
         {
             if (_visitEventFieldDeclaration != null)
-                node = _visitEventFieldDeclaration.Invoke(this, node);
+            {
+                var visit = _visitEventFieldDeclaration.Invoke(this, node);
+                return (visit is EventFieldDeclarationSyntax newNode) ? base.VisitEventFieldDeclaration(newNode) : visit;
+            }
             return base.VisitEventFieldDeclaration(node);
         }
 
@@ -5368,7 +5931,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitExplicitInterfaceSpecifier(ExplicitInterfaceSpecifierSyntax node)
         {
             if (_visitExplicitInterfaceSpecifier != null)
-                node = _visitExplicitInterfaceSpecifier.Invoke(this, node);
+            {
+                var visit = _visitExplicitInterfaceSpecifier.Invoke(this, node);
+                return (visit is ExplicitInterfaceSpecifierSyntax newNode) ? base.VisitExplicitInterfaceSpecifier(newNode) : visit;
+            }
             return base.VisitExplicitInterfaceSpecifier(node);
         }
 
@@ -5380,7 +5946,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
             if (_visitMethodDeclaration != null)
-                node = _visitMethodDeclaration.Invoke(this, node);
+            {
+                var visit = _visitMethodDeclaration.Invoke(this, node);
+                return (visit is MethodDeclarationSyntax newNode) ? base.VisitMethodDeclaration(newNode) : visit;
+            }
             return base.VisitMethodDeclaration(node);
         }
 
@@ -5392,7 +5961,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitOperatorDeclaration(OperatorDeclarationSyntax node)
         {
             if (_visitOperatorDeclaration != null)
-                node = _visitOperatorDeclaration.Invoke(this, node);
+            {
+                var visit = _visitOperatorDeclaration.Invoke(this, node);
+                return (visit is OperatorDeclarationSyntax newNode) ? base.VisitOperatorDeclaration(newNode) : visit;
+            }
             return base.VisitOperatorDeclaration(node);
         }
 
@@ -5404,7 +5976,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitConversionOperatorDeclaration(ConversionOperatorDeclarationSyntax node)
         {
             if (_visitConversionOperatorDeclaration != null)
-                node = _visitConversionOperatorDeclaration.Invoke(this, node);
+            {
+                var visit = _visitConversionOperatorDeclaration.Invoke(this, node);
+                return (visit is ConversionOperatorDeclarationSyntax newNode) ? base.VisitConversionOperatorDeclaration(newNode) : visit;
+            }
             return base.VisitConversionOperatorDeclaration(node);
         }
 
@@ -5416,7 +5991,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitConstructorDeclaration(ConstructorDeclarationSyntax node)
         {
             if (_visitConstructorDeclaration != null)
-                node = _visitConstructorDeclaration.Invoke(this, node);
+            {
+                var visit = _visitConstructorDeclaration.Invoke(this, node);
+                return (visit is ConstructorDeclarationSyntax newNode) ? base.VisitConstructorDeclaration(newNode) : visit;
+            }
             return base.VisitConstructorDeclaration(node);
         }
 
@@ -5428,7 +6006,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitConstructorInitializer(ConstructorInitializerSyntax node)
         {
             if (_visitConstructorInitializer != null)
-                node = _visitConstructorInitializer.Invoke(this, node);
+            {
+                var visit = _visitConstructorInitializer.Invoke(this, node);
+                return (visit is ConstructorInitializerSyntax newNode) ? base.VisitConstructorInitializer(newNode) : visit;
+            }
             return base.VisitConstructorInitializer(node);
         }
 
@@ -5440,7 +6021,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitDestructorDeclaration(DestructorDeclarationSyntax node)
         {
             if (_visitDestructorDeclaration != null)
-                node = _visitDestructorDeclaration.Invoke(this, node);
+            {
+                var visit = _visitDestructorDeclaration.Invoke(this, node);
+                return (visit is DestructorDeclarationSyntax newNode) ? base.VisitDestructorDeclaration(newNode) : visit;
+            }
             return base.VisitDestructorDeclaration(node);
         }
 
@@ -5452,7 +6036,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitPropertyDeclaration(PropertyDeclarationSyntax node)
         {
             if (_visitPropertyDeclaration != null)
-                node = _visitPropertyDeclaration.Invoke(this, node);
+            {
+                var visit = _visitPropertyDeclaration.Invoke(this, node);
+                return (visit is PropertyDeclarationSyntax newNode) ? base.VisitPropertyDeclaration(newNode) : visit;
+            }
             return base.VisitPropertyDeclaration(node);
         }
 
@@ -5464,7 +6051,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitArrowExpressionClause(ArrowExpressionClauseSyntax node)
         {
             if (_visitArrowExpressionClause != null)
-                node = _visitArrowExpressionClause.Invoke(this, node);
+            {
+                var visit = _visitArrowExpressionClause.Invoke(this, node);
+                return (visit is ArrowExpressionClauseSyntax newNode) ? base.VisitArrowExpressionClause(newNode) : visit;
+            }
             return base.VisitArrowExpressionClause(node);
         }
 
@@ -5476,7 +6066,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitEventDeclaration(EventDeclarationSyntax node)
         {
             if (_visitEventDeclaration != null)
-                node = _visitEventDeclaration.Invoke(this, node);
+            {
+                var visit = _visitEventDeclaration.Invoke(this, node);
+                return (visit is EventDeclarationSyntax newNode) ? base.VisitEventDeclaration(newNode) : visit;
+            }
             return base.VisitEventDeclaration(node);
         }
 
@@ -5488,7 +6081,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitIndexerDeclaration(IndexerDeclarationSyntax node)
         {
             if (_visitIndexerDeclaration != null)
-                node = _visitIndexerDeclaration.Invoke(this, node);
+            {
+                var visit = _visitIndexerDeclaration.Invoke(this, node);
+                return (visit is IndexerDeclarationSyntax newNode) ? base.VisitIndexerDeclaration(newNode) : visit;
+            }
             return base.VisitIndexerDeclaration(node);
         }
 
@@ -5500,7 +6096,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitAccessorList(AccessorListSyntax node)
         {
             if (_visitAccessorList != null)
-                node = _visitAccessorList.Invoke(this, node);
+            {
+                var visit = _visitAccessorList.Invoke(this, node);
+                return (visit is AccessorListSyntax newNode) ? base.VisitAccessorList(newNode) : visit;
+            }
             return base.VisitAccessorList(node);
         }
 
@@ -5512,7 +6111,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitAccessorDeclaration(AccessorDeclarationSyntax node)
         {
             if (_visitAccessorDeclaration != null)
-                node = _visitAccessorDeclaration.Invoke(this, node);
+            {
+                var visit = _visitAccessorDeclaration.Invoke(this, node);
+                return (visit is AccessorDeclarationSyntax newNode) ? base.VisitAccessorDeclaration(newNode) : visit;
+            }
             return base.VisitAccessorDeclaration(node);
         }
 
@@ -5524,7 +6126,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitParameterList(ParameterListSyntax node)
         {
             if (_visitParameterList != null)
-                node = _visitParameterList.Invoke(this, node);
+            {
+                var visit = _visitParameterList.Invoke(this, node);
+                return (visit is ParameterListSyntax newNode) ? base.VisitParameterList(newNode) : visit;
+            }
             return base.VisitParameterList(node);
         }
 
@@ -5536,7 +6141,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitBracketedParameterList(BracketedParameterListSyntax node)
         {
             if (_visitBracketedParameterList != null)
-                node = _visitBracketedParameterList.Invoke(this, node);
+            {
+                var visit = _visitBracketedParameterList.Invoke(this, node);
+                return (visit is BracketedParameterListSyntax newNode) ? base.VisitBracketedParameterList(newNode) : visit;
+            }
             return base.VisitBracketedParameterList(node);
         }
 
@@ -5548,7 +6156,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitParameter(ParameterSyntax node)
         {
             if (_visitParameter != null)
-                node = _visitParameter.Invoke(this, node);
+            {
+                var visit = _visitParameter.Invoke(this, node);
+                return (visit is ParameterSyntax newNode) ? base.VisitParameter(newNode) : visit;
+            }
             return base.VisitParameter(node);
         }
 
@@ -5560,7 +6171,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitFunctionPointerParameter(FunctionPointerParameterSyntax node)
         {
             if (_visitFunctionPointerParameter != null)
-                node = _visitFunctionPointerParameter.Invoke(this, node);
+            {
+                var visit = _visitFunctionPointerParameter.Invoke(this, node);
+                return (visit is FunctionPointerParameterSyntax newNode) ? base.VisitFunctionPointerParameter(newNode) : visit;
+            }
             return base.VisitFunctionPointerParameter(node);
         }
 
@@ -5572,7 +6186,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitIncompleteMember(IncompleteMemberSyntax node)
         {
             if (_visitIncompleteMember != null)
-                node = _visitIncompleteMember.Invoke(this, node);
+            {
+                var visit = _visitIncompleteMember.Invoke(this, node);
+                return (visit is IncompleteMemberSyntax newNode) ? base.VisitIncompleteMember(newNode) : visit;
+            }
             return base.VisitIncompleteMember(node);
         }
 
@@ -5584,7 +6201,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitSkippedTokensTrivia(SkippedTokensTriviaSyntax node)
         {
             if (_visitSkippedTokensTrivia != null)
-                node = _visitSkippedTokensTrivia.Invoke(this, node);
+            {
+                var visit = _visitSkippedTokensTrivia.Invoke(this, node);
+                return (visit is SkippedTokensTriviaSyntax newNode) ? base.VisitSkippedTokensTrivia(newNode) : visit;
+            }
             return base.VisitSkippedTokensTrivia(node);
         }
 
@@ -5596,7 +6216,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitDocumentationCommentTrivia(DocumentationCommentTriviaSyntax node)
         {
             if (_visitDocumentationCommentTrivia != null)
-                node = _visitDocumentationCommentTrivia.Invoke(this, node);
+            {
+                var visit = _visitDocumentationCommentTrivia.Invoke(this, node);
+                return (visit is DocumentationCommentTriviaSyntax newNode) ? base.VisitDocumentationCommentTrivia(newNode) : visit;
+            }
             return base.VisitDocumentationCommentTrivia(node);
         }
 
@@ -5608,7 +6231,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitTypeCref(TypeCrefSyntax node)
         {
             if (_visitTypeCref != null)
-                node = _visitTypeCref.Invoke(this, node);
+            {
+                var visit = _visitTypeCref.Invoke(this, node);
+                return (visit is TypeCrefSyntax newNode) ? base.VisitTypeCref(newNode) : visit;
+            }
             return base.VisitTypeCref(node);
         }
 
@@ -5620,7 +6246,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitQualifiedCref(QualifiedCrefSyntax node)
         {
             if (_visitQualifiedCref != null)
-                node = _visitQualifiedCref.Invoke(this, node);
+            {
+                var visit = _visitQualifiedCref.Invoke(this, node);
+                return (visit is QualifiedCrefSyntax newNode) ? base.VisitQualifiedCref(newNode) : visit;
+            }
             return base.VisitQualifiedCref(node);
         }
 
@@ -5632,7 +6261,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitNameMemberCref(NameMemberCrefSyntax node)
         {
             if (_visitNameMemberCref != null)
-                node = _visitNameMemberCref.Invoke(this, node);
+            {
+                var visit = _visitNameMemberCref.Invoke(this, node);
+                return (visit is NameMemberCrefSyntax newNode) ? base.VisitNameMemberCref(newNode) : visit;
+            }
             return base.VisitNameMemberCref(node);
         }
 
@@ -5644,7 +6276,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitIndexerMemberCref(IndexerMemberCrefSyntax node)
         {
             if (_visitIndexerMemberCref != null)
-                node = _visitIndexerMemberCref.Invoke(this, node);
+            {
+                var visit = _visitIndexerMemberCref.Invoke(this, node);
+                return (visit is IndexerMemberCrefSyntax newNode) ? base.VisitIndexerMemberCref(newNode) : visit;
+            }
             return base.VisitIndexerMemberCref(node);
         }
 
@@ -5656,7 +6291,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitOperatorMemberCref(OperatorMemberCrefSyntax node)
         {
             if (_visitOperatorMemberCref != null)
-                node = _visitOperatorMemberCref.Invoke(this, node);
+            {
+                var visit = _visitOperatorMemberCref.Invoke(this, node);
+                return (visit is OperatorMemberCrefSyntax newNode) ? base.VisitOperatorMemberCref(newNode) : visit;
+            }
             return base.VisitOperatorMemberCref(node);
         }
 
@@ -5668,7 +6306,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitConversionOperatorMemberCref(ConversionOperatorMemberCrefSyntax node)
         {
             if (_visitConversionOperatorMemberCref != null)
-                node = _visitConversionOperatorMemberCref.Invoke(this, node);
+            {
+                var visit = _visitConversionOperatorMemberCref.Invoke(this, node);
+                return (visit is ConversionOperatorMemberCrefSyntax newNode) ? base.VisitConversionOperatorMemberCref(newNode) : visit;
+            }
             return base.VisitConversionOperatorMemberCref(node);
         }
 
@@ -5680,7 +6321,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitCrefParameterList(CrefParameterListSyntax node)
         {
             if (_visitCrefParameterList != null)
-                node = _visitCrefParameterList.Invoke(this, node);
+            {
+                var visit = _visitCrefParameterList.Invoke(this, node);
+                return (visit is CrefParameterListSyntax newNode) ? base.VisitCrefParameterList(newNode) : visit;
+            }
             return base.VisitCrefParameterList(node);
         }
 
@@ -5692,7 +6336,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitCrefBracketedParameterList(CrefBracketedParameterListSyntax node)
         {
             if (_visitCrefBracketedParameterList != null)
-                node = _visitCrefBracketedParameterList.Invoke(this, node);
+            {
+                var visit = _visitCrefBracketedParameterList.Invoke(this, node);
+                return (visit is CrefBracketedParameterListSyntax newNode) ? base.VisitCrefBracketedParameterList(newNode) : visit;
+            }
             return base.VisitCrefBracketedParameterList(node);
         }
 
@@ -5704,7 +6351,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitCrefParameter(CrefParameterSyntax node)
         {
             if (_visitCrefParameter != null)
-                node = _visitCrefParameter.Invoke(this, node);
+            {
+                var visit = _visitCrefParameter.Invoke(this, node);
+                return (visit is CrefParameterSyntax newNode) ? base.VisitCrefParameter(newNode) : visit;
+            }
             return base.VisitCrefParameter(node);
         }
 
@@ -5716,7 +6366,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitXmlElement(XmlElementSyntax node)
         {
             if (_visitXmlElement != null)
-                node = _visitXmlElement.Invoke(this, node);
+            {
+                var visit = _visitXmlElement.Invoke(this, node);
+                return (visit is XmlElementSyntax newNode) ? base.VisitXmlElement(newNode) : visit;
+            }
             return base.VisitXmlElement(node);
         }
 
@@ -5728,7 +6381,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitXmlElementStartTag(XmlElementStartTagSyntax node)
         {
             if (_visitXmlElementStartTag != null)
-                node = _visitXmlElementStartTag.Invoke(this, node);
+            {
+                var visit = _visitXmlElementStartTag.Invoke(this, node);
+                return (visit is XmlElementStartTagSyntax newNode) ? base.VisitXmlElementStartTag(newNode) : visit;
+            }
             return base.VisitXmlElementStartTag(node);
         }
 
@@ -5740,7 +6396,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitXmlElementEndTag(XmlElementEndTagSyntax node)
         {
             if (_visitXmlElementEndTag != null)
-                node = _visitXmlElementEndTag.Invoke(this, node);
+            {
+                var visit = _visitXmlElementEndTag.Invoke(this, node);
+                return (visit is XmlElementEndTagSyntax newNode) ? base.VisitXmlElementEndTag(newNode) : visit;
+            }
             return base.VisitXmlElementEndTag(node);
         }
 
@@ -5752,7 +6411,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitXmlEmptyElement(XmlEmptyElementSyntax node)
         {
             if (_visitXmlEmptyElement != null)
-                node = _visitXmlEmptyElement.Invoke(this, node);
+            {
+                var visit = _visitXmlEmptyElement.Invoke(this, node);
+                return (visit is XmlEmptyElementSyntax newNode) ? base.VisitXmlEmptyElement(newNode) : visit;
+            }
             return base.VisitXmlEmptyElement(node);
         }
 
@@ -5764,7 +6426,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitXmlName(XmlNameSyntax node)
         {
             if (_visitXmlName != null)
-                node = _visitXmlName.Invoke(this, node);
+            {
+                var visit = _visitXmlName.Invoke(this, node);
+                return (visit is XmlNameSyntax newNode) ? base.VisitXmlName(newNode) : visit;
+            }
             return base.VisitXmlName(node);
         }
 
@@ -5776,7 +6441,10 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitXmlPrefix(XmlPrefixSyntax node)
         {
             if (_visitXmlPrefix != null)
-                node = _visitXmlPrefix.Invoke(this, node);
+            {
+                var visit = _visitXmlPrefix.Invoke(this, node);
+                return (visit is XmlPrefixSyntax newNode) ? base.VisitXmlPrefix(newNode) : visit;
+            }
             return base.VisitXmlPrefix(node);
         }
 
@@ -5788,320 +6456,402 @@ namespace FluentSyntaxRewriter
         public override SyntaxNode VisitXmlTextAttribute(XmlTextAttributeSyntax node)
         {
             if (_visitXmlTextAttribute != null)
-                node = _visitXmlTextAttribute.Invoke(this, node);
+            {
+                var visit = _visitXmlTextAttribute.Invoke(this, node);
+                return (visit is XmlTextAttributeSyntax newNode) ? base.VisitXmlTextAttribute(newNode) : visit;
+            }
             return base.VisitXmlTextAttribute(node);
         }
 
-        /// <summary>
-        /// Visits the specified XML cref attribute syntax node.
-        /// </summary>
-        /// <param name="node">The XML cref attribute syntax node to visit.</param>
-        /// <returns>The visited XML cref attribute syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitXmlCrefAttribute(XmlCrefAttributeSyntax node)
-        {
-            if (_visitXmlCrefAttribute != null)
-                node = _visitXmlCrefAttribute.Invoke(this, node);
-            return base.VisitXmlCrefAttribute(node);
-        }
+/// <summary>
+/// Visits the specified XML cref attribute syntax node.
+/// </summary>
+/// <param name="node">The XML cref attribute syntax node to visit.</param>
+/// <returns>The visited XML cref attribute syntax node, possibly modified.</returns>
+public override SyntaxNode VisitXmlCrefAttribute(XmlCrefAttributeSyntax node)
+{
+    if (_visitXmlCrefAttribute != null)
+    {
+        var visit = _visitXmlCrefAttribute.Invoke(this, node);
+        return (visit is XmlCrefAttributeSyntax newNode) ? base.VisitXmlCrefAttribute(newNode) : visit;
+    }
+    return base.VisitXmlCrefAttribute(node);
+}
 
-        /// <summary>
-        /// Visits the specified XML name attribute syntax node.
-        /// </summary>
-        /// <param name="node">The XML name attribute syntax node to visit.</param>
-        /// <returns>The visited XML name attribute syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitXmlNameAttribute(XmlNameAttributeSyntax node)
-        {
-            if (_visitXmlNameAttribute != null)
-                node = _visitXmlNameAttribute.Invoke(this, node);
-            return base.VisitXmlNameAttribute(node);
-        }
+/// <summary>
+/// Visits the specified XML name attribute syntax node.
+/// </summary>
+/// <param name="node">The XML name attribute syntax node to visit.</param>
+/// <returns>The visited XML name attribute syntax node, possibly modified.</returns>
+public override SyntaxNode VisitXmlNameAttribute(XmlNameAttributeSyntax node)
+{
+    if (_visitXmlNameAttribute != null)
+    {
+        var visit = _visitXmlNameAttribute.Invoke(this, node);
+        return (visit is XmlNameAttributeSyntax newNode) ? base.VisitXmlNameAttribute(newNode) : visit;
+    }
+    return base.VisitXmlNameAttribute(node);
+}
 
-        /// <summary>
-        /// Visits the specified XML text syntax node.
-        /// </summary>
-        /// <param name="node">The XML text syntax node to visit.</param>
-        /// <returns>The visited XML text syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitXmlText(XmlTextSyntax node)
-        {
-            if (_visitXmlText != null)
-                node = _visitXmlText.Invoke(this, node);
-            return base.VisitXmlText(node);
-        }
+/// <summary>
+/// Visits the specified XML text syntax node.
+/// </summary>
+/// <param name="node">The XML text syntax node to visit.</param>
+/// <returns>The visited XML text syntax node, possibly modified.</returns>
+public override SyntaxNode VisitXmlText(XmlTextSyntax node)
+{
+    if (_visitXmlText != null)
+    {
+        var visit = _visitXmlText.Invoke(this, node);
+        return (visit is XmlTextSyntax newNode) ? base.VisitXmlText(newNode) : visit;
+    }
+    return base.VisitXmlText(node);
+}
 
-        /// <summary>
-        /// Visits the specified XML CDATA section syntax node.
-        /// </summary>
-        /// <param name="node">The XML CDATA section syntax node to visit.</param>
-        /// <returns>The visited XML CDATA section syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitXmlCDataSection(XmlCDataSectionSyntax node)
-        {
-            if (_visitXmlCDataSection != null)
-                node = _visitXmlCDataSection.Invoke(this, node);
-            return base.VisitXmlCDataSection(node);
-        }
+/// <summary>
+/// Visits the specified XML CDATA section syntax node.
+/// </summary>
+/// <param name="node">The XML CDATA section syntax node to visit.</param>
+/// <returns>The visited XML CDATA section syntax node, possibly modified.</returns>
+public override SyntaxNode VisitXmlCDataSection(XmlCDataSectionSyntax node)
+{
+    if (_visitXmlCDataSection != null)
+    {
+        var visit = _visitXmlCDataSection.Invoke(this, node);
+        return (visit is XmlCDataSectionSyntax newNode) ? base.VisitXmlCDataSection(newNode) : visit;
+    }
+    return base.VisitXmlCDataSection(node);
+}
 
-        /// <summary>
-        /// Visits the specified XML processing instruction syntax node.
-        /// </summary>
-        /// <param name="node">The XML processing instruction syntax node to visit.</param>
-        /// <returns>The visited XML processing instruction syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitXmlProcessingInstruction(XmlProcessingInstructionSyntax node)
-        {
-            if (_visitXmlProcessingInstruction != null)
-                node = _visitXmlProcessingInstruction.Invoke(this, node);
-            return base.VisitXmlProcessingInstruction(node);
-        }
+/// <summary>
+/// Visits the specified XML processing instruction syntax node.
+/// </summary>
+/// <param name="node">The XML processing instruction syntax node to visit.</param>
+/// <returns>The visited XML processing instruction syntax node, possibly modified.</returns>
+public override SyntaxNode VisitXmlProcessingInstruction(XmlProcessingInstructionSyntax node)
+{
+    if (_visitXmlProcessingInstruction != null)
+    {
+        var visit = _visitXmlProcessingInstruction.Invoke(this, node);
+        return (visit is XmlProcessingInstructionSyntax newNode) ? base.VisitXmlProcessingInstruction(newNode) : visit;
+    }
+    return base.VisitXmlProcessingInstruction(node);
+}
 
-        /// <summary>
-        /// Visits the specified XML comment syntax node.
-        /// </summary>
-        /// <param name="node">The XML comment syntax node to visit.</param>
-        /// <returns>The visited XML comment syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitXmlComment(XmlCommentSyntax node)
-        {
-            if (_visitXmlComment != null)
-                node = _visitXmlComment.Invoke(this, node);
-            return base.VisitXmlComment(node);
-        }
+/// <summary>
+/// Visits the specified XML comment syntax node.
+/// </summary>
+/// <param name="node">The XML comment syntax node to visit.</param>
+/// <returns>The visited XML comment syntax node, possibly modified.</returns>
+public override SyntaxNode VisitXmlComment(XmlCommentSyntax node)
+{
+    if (_visitXmlComment != null)
+    {
+        var visit = _visitXmlComment.Invoke(this, node);
+        return (visit is XmlCommentSyntax newNode) ? base.VisitXmlComment(newNode) : visit;
+    }
+    return base.VisitXmlComment(node);
+}
 
-        /// <summary>
-        /// Visits the specified if directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The if directive trivia syntax node to visit.</param>
-        /// <returns>The visited if directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitIfDirectiveTrivia(IfDirectiveTriviaSyntax node)
-        {
-            if (_visitIfDirectiveTrivia != null)
-                node = _visitIfDirectiveTrivia.Invoke(this, node);
-            return base.VisitIfDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified if directive trivia syntax node.
+/// </summary>
+/// <param name="node">The if directive trivia syntax node to visit.</param>
+/// <returns>The visited if directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitIfDirectiveTrivia(IfDirectiveTriviaSyntax node)
+{
+    if (_visitIfDirectiveTrivia != null)
+    {
+        var visit = _visitIfDirectiveTrivia.Invoke(this, node);
+        return (visit is IfDirectiveTriviaSyntax newNode) ? base.VisitIfDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitIfDirectiveTrivia(node);
+}
 
-        /// <summary>
-        /// Visits the specified elif directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The elif directive trivia syntax node to visit.</param>
-        /// <returns>The visited elif directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitElifDirectiveTrivia(ElifDirectiveTriviaSyntax node)
-        {
-            if (_visitElifDirectiveTrivia != null)
-                node = _visitElifDirectiveTrivia.Invoke(this, node);
-            return base.VisitElifDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified elif directive trivia syntax node.
+/// </summary>
+/// <param name="node">The elif directive trivia syntax node to visit.</param>
+/// <returns>The visited elif directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitElifDirectiveTrivia(ElifDirectiveTriviaSyntax node)
+{
+    if (_visitElifDirectiveTrivia != null)
+    {
+        var visit = _visitElifDirectiveTrivia.Invoke(this, node);
+        return (visit is ElifDirectiveTriviaSyntax newNode) ? base.VisitElifDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitElifDirectiveTrivia(node);
+}
 
-        /// <summary>
-        /// Visits the specified else directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The else directive trivia syntax node to visit.</param>
-        /// <returns>The visited else directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitElseDirectiveTrivia(ElseDirectiveTriviaSyntax node)
-        {
-            if (_visitElseDirectiveTrivia != null)
-                node = _visitElseDirectiveTrivia.Invoke(this, node);
-            return base.VisitElseDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified else directive trivia syntax node.
+/// </summary>
+/// <param name="node">The else directive trivia syntax node to visit.</param>
+/// <returns>The visited else directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitElseDirectiveTrivia(ElseDirectiveTriviaSyntax node)
+{
+    if (_visitElseDirectiveTrivia != null)
+    {
+        var visit = _visitElseDirectiveTrivia.Invoke(this, node);
+        return (visit is ElseDirectiveTriviaSyntax newNode) ? base.VisitElseDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitElseDirectiveTrivia(node);
+}
 
-        /// <summary>
-        /// Visits the specified endif directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The endif directive trivia syntax node to visit.</param>
-        /// <returns>The visited endif directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitEndIfDirectiveTrivia(EndIfDirectiveTriviaSyntax node)
-        {
-            if (_visitEndIfDirectiveTrivia != null)
-                node = _visitEndIfDirectiveTrivia.Invoke(this, node);
-            return base.VisitEndIfDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified endif directive trivia syntax node.
+/// </summary>
+/// <param name="node">The endif directive trivia syntax node to visit.</param>
+/// <returns>The visited endif directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitEndIfDirectiveTrivia(EndIfDirectiveTriviaSyntax node)
+{
+    if (_visitEndIfDirectiveTrivia != null)
+    {
+        var visit = _visitEndIfDirectiveTrivia.Invoke(this, node);
+        return (visit is EndIfDirectiveTriviaSyntax newNode) ? base.VisitEndIfDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitEndIfDirectiveTrivia(node);
+}
 
-        /// <summary>
-        /// Visits the specified region directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The region directive trivia syntax node to visit.</param>
-        /// <returns>The visited region directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitRegionDirectiveTrivia(RegionDirectiveTriviaSyntax node)
-        {
-            if (_visitRegionDirectiveTrivia != null)
-                node = _visitRegionDirectiveTrivia.Invoke(this, node);
-            return base.VisitRegionDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified region directive trivia syntax node.
+/// </summary>
+/// <param name="node">The region directive trivia syntax node to visit.</param>
+/// <returns>The visited region directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitRegionDirectiveTrivia(RegionDirectiveTriviaSyntax node)
+{
+    if (_visitRegionDirectiveTrivia != null)
+    {
+        var visit = _visitRegionDirectiveTrivia.Invoke(this, node);
+        return (visit is RegionDirectiveTriviaSyntax newNode) ? base.VisitRegionDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitRegionDirectiveTrivia(node);
+}
 
-        /// <summary>
-        /// Visits the specified endregion directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The endregion directive trivia syntax node to visit.</param>
-        /// <returns>The visited endregion directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitEndRegionDirectiveTrivia(EndRegionDirectiveTriviaSyntax node)
-        {
-            if (_visitEndRegionDirectiveTrivia != null)
-                node = _visitEndRegionDirectiveTrivia.Invoke(this, node);
-            return base.VisitEndRegionDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified endregion directive trivia syntax node.
+/// </summary>
+/// <param name="node">The endregion directive trivia syntax node to visit.</param>
+/// <returns>The visited endregion directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitEndRegionDirectiveTrivia(EndRegionDirectiveTriviaSyntax node)
+{
+    if (_visitEndRegionDirectiveTrivia != null)
+    {
+        var visit = _visitEndRegionDirectiveTrivia.Invoke(this, node);
+        return (visit is EndRegionDirectiveTriviaSyntax newNode) ? base.VisitEndRegionDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitEndRegionDirectiveTrivia(node);
+}
 
-        /// <summary>
-        /// Visits the specified error directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The error directive trivia syntax node to visit.</param>
-        /// <returns>The visited error directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitErrorDirectiveTrivia(ErrorDirectiveTriviaSyntax node)
-        {
-            if (_visitErrorDirectiveTrivia != null)
-                node = _visitErrorDirectiveTrivia.Invoke(this, node);
-            return base.VisitErrorDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified error directive trivia syntax node.
+/// </summary>
+/// <param name="node">The error directive trivia syntax node to visit.</param>
+/// <returns>The visited error directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitErrorDirectiveTrivia(ErrorDirectiveTriviaSyntax node)
+{
+    if (_visitErrorDirectiveTrivia != null)
+    {
+        var visit = _visitErrorDirectiveTrivia.Invoke(this, node);
+        return (visit is ErrorDirectiveTriviaSyntax newNode) ? base.VisitErrorDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitErrorDirectiveTrivia(node);
+}
 
-        /// <summary>
-        /// Visits the specified warning directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The warning directive trivia syntax node to visit.</param>
-        /// <returns>The visited warning directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitWarningDirectiveTrivia(WarningDirectiveTriviaSyntax node)
-        {
-            if (_visitWarningDirectiveTrivia != null)
-                node = _visitWarningDirectiveTrivia.Invoke(this, node);
-            return base.VisitWarningDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified warning directive trivia syntax node.
+/// </summary>
+/// <param name="node">The warning directive trivia syntax node to visit.</param>
+/// <returns>The visited warning directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitWarningDirectiveTrivia(WarningDirectiveTriviaSyntax node)
+{
+    if (_visitWarningDirectiveTrivia != null)
+    {
+        var visit = _visitWarningDirectiveTrivia.Invoke(this, node);
+        return (visit is WarningDirectiveTriviaSyntax newNode) ? base.VisitWarningDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitWarningDirectiveTrivia(node);
+}
 
-        /// <summary>
-        /// Visits the specified bad directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The bad directive trivia syntax node to visit.</param>
-        /// <returns>The visited bad directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitBadDirectiveTrivia(BadDirectiveTriviaSyntax node)
-        {
-            if (_visitBadDirectiveTrivia != null)
-                node = _visitBadDirectiveTrivia.Invoke(this, node);
-            return base.VisitBadDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified bad directive trivia syntax node.
+/// </summary>
+/// <param name="node">The bad directive trivia syntax node to visit.</param>
+/// <returns>The visited bad directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitBadDirectiveTrivia(BadDirectiveTriviaSyntax node)
+{
+    if (_visitBadDirectiveTrivia != null)
+    {
+        var visit = _visitBadDirectiveTrivia.Invoke(this, node);
+        return (visit is BadDirectiveTriviaSyntax newNode) ? base.VisitBadDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitBadDirectiveTrivia(node);
+}
 
-        /// <summary>
-        /// Visits the specified define directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The define directive trivia syntax node to visit.</param>
-        /// <returns>The visited define directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitDefineDirectiveTrivia(DefineDirectiveTriviaSyntax node)
-        {
-            if (_visitDefineDirectiveTrivia != null)
-                node = _visitDefineDirectiveTrivia.Invoke(this, node);
-            return base.VisitDefineDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified define directive trivia syntax node.
+/// </summary>
+/// <param name="node">The define directive trivia syntax node to visit.</param>
+/// <returns>The visited define directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitDefineDirectiveTrivia(DefineDirectiveTriviaSyntax node)
+{
+    if (_visitDefineDirectiveTrivia != null)
+    {
+        var visit = _visitDefineDirectiveTrivia.Invoke(this, node);
+        return (visit is DefineDirectiveTriviaSyntax newNode) ? base.VisitDefineDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitDefineDirectiveTrivia(node);
+}
 
-        /// <summary>
-        /// Visits the specified undef directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The undef directive trivia syntax node to visit.</param>
-        /// <returns>The visited undef directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitUndefDirectiveTrivia(UndefDirectiveTriviaSyntax node)
-        {
-            if (_visitUndefDirectiveTrivia != null)
-                node = _visitUndefDirectiveTrivia.Invoke(this, node);
-            return base.VisitUndefDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified undef directive trivia syntax node.
+/// </summary>
+/// <param name="node">The undef directive trivia syntax node to visit.</param>
+/// <returns>The visited undef directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitUndefDirectiveTrivia(UndefDirectiveTriviaSyntax node)
+{
+    if (_visitUndefDirectiveTrivia != null)
+    {
+        var visit = _visitUndefDirectiveTrivia.Invoke(this, node);
+        return (visit is UndefDirectiveTriviaSyntax newNode) ? base.VisitUndefDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitUndefDirectiveTrivia(node);
+}
 
-        /// <summary>
-        /// Visits the specified line directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The line directive trivia syntax node to visit.</param>
-        /// <returns>The visited line directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitLineDirectiveTrivia(LineDirectiveTriviaSyntax node)
-        {
-            if (_visitLineDirectiveTrivia != null)
-                node = _visitLineDirectiveTrivia.Invoke(this, node);
-            return base.VisitLineDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified line directive trivia syntax node.
+/// </summary>
+/// <param name="node">The line directive trivia syntax node to visit.</param>
+/// <returns>The visited line directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitLineDirectiveTrivia(LineDirectiveTriviaSyntax node)
+{
+    if (_visitLineDirectiveTrivia != null)
+    {
+        var visit = _visitLineDirectiveTrivia.Invoke(this, node);
+        return (visit is LineDirectiveTriviaSyntax newNode) ? base.VisitLineDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitLineDirectiveTrivia(node);
+}
 
-        /// <summary>
-        /// Visits the specified line directive position syntax node.
-        /// </summary>
-        /// <param name="node">The line directive position syntax node to visit.</param>
-        /// <returns>The visited line directive position syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitLineDirectivePosition(LineDirectivePositionSyntax node)
-        {
-            if (_visitLineDirectivePosition != null)
-                node = _visitLineDirectivePosition.Invoke(this, node);
-            return base.VisitLineDirectivePosition(node);
-        }
+/// <summary>
+/// Visits the specified line directive position syntax node.
+/// </summary>
+/// <param name="node">The line directive position syntax node to visit.</param>
+/// <returns>The visited line directive position syntax node, possibly modified.</returns>
+public override SyntaxNode VisitLineDirectivePosition(LineDirectivePositionSyntax node)
+{
+    if (_visitLineDirectivePosition != null)
+    {
+        var visit = _visitLineDirectivePosition.Invoke(this, node);
+        return (visit is LineDirectivePositionSyntax newNode) ? base.VisitLineDirectivePosition(newNode) : visit;
+    }
+    return base.VisitLineDirectivePosition(node);
+}
 
-        /// <summary>
-        /// Visits the specified line span directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The line span directive trivia syntax node to visit.</param>
-        /// <returns>The visited line span directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitLineSpanDirectiveTrivia(LineSpanDirectiveTriviaSyntax node)
-        {
-            if (_visitLineSpanDirectiveTrivia != null)
-                node = _visitLineSpanDirectiveTrivia.Invoke(this, node);
-            return base.VisitLineSpanDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified line span directive trivia syntax node.
+/// </summary>
+/// <param name="node">The line span directive trivia syntax node to visit.</param>
+/// <returns>The visited line span directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitLineSpanDirectiveTrivia(LineSpanDirectiveTriviaSyntax node)
+{
+    if (_visitLineSpanDirectiveTrivia != null)
+    {
+        var visit = _visitLineSpanDirectiveTrivia.Invoke(this, node);
+        return (visit is LineSpanDirectiveTriviaSyntax newNode) ? base.VisitLineSpanDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitLineSpanDirectiveTrivia(node);
+}
 
-        /// <summary>
-        /// Visits the specified pragma warning directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The pragma warning directive trivia syntax node to visit.</param>
-        /// <returns>The visited pragma warning directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitPragmaWarningDirectiveTrivia(PragmaWarningDirectiveTriviaSyntax node)
-        {
-            if (_visitPragmaWarningDirectiveTrivia != null)
-                node = _visitPragmaWarningDirectiveTrivia.Invoke(this, node);
-            return base.VisitPragmaWarningDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified pragma warning directive trivia syntax node.
+/// </summary>
+/// <param name="node">The pragma warning directive trivia syntax node to visit.</param>
+/// <returns>The visited pragma warning directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitPragmaWarningDirectiveTrivia(PragmaWarningDirectiveTriviaSyntax node)
+{
+    if (_visitPragmaWarningDirectiveTrivia != null)
+    {
+        var visit = _visitPragmaWarningDirectiveTrivia.Invoke(this, node);
+        return (visit is PragmaWarningDirectiveTriviaSyntax newNode) ? base.VisitPragmaWarningDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitPragmaWarningDirectiveTrivia(node);
+}
 
-        /// <summary>
-        /// Visits the specified pragma checksum directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The pragma checksum directive trivia syntax node to visit.</param>
-        /// <returns>The visited pragma checksum directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitPragmaChecksumDirectiveTrivia(PragmaChecksumDirectiveTriviaSyntax node)
-        {
-            if (_visitPragmaChecksumDirectiveTrivia != null)
-                node = _visitPragmaChecksumDirectiveTrivia.Invoke(this, node);
-            return base.VisitPragmaChecksumDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified pragma checksum directive trivia syntax node.
+/// </summary>
+/// <param name="node">The pragma checksum directive trivia syntax node to visit.</param>
+/// <returns>The visited pragma checksum directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitPragmaChecksumDirectiveTrivia(PragmaChecksumDirectiveTriviaSyntax node)
+{
+    if (_visitPragmaChecksumDirectiveTrivia != null)
+    {
+        var visit = _visitPragmaChecksumDirectiveTrivia.Invoke(this, node);
+        return (visit is PragmaChecksumDirectiveTriviaSyntax newNode) ? base.VisitPragmaChecksumDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitPragmaChecksumDirectiveTrivia(node);
+}
 
-        /// <summary>
-        /// Visits the specified reference directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The reference directive trivia syntax node to visit.</param>
-        /// <returns>The visited reference directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitReferenceDirectiveTrivia(ReferenceDirectiveTriviaSyntax node)
-        {
-            if (_visitReferenceDirectiveTrivia != null)
-                node = _visitReferenceDirectiveTrivia.Invoke(this, node);
-            return base.VisitReferenceDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified reference directive trivia syntax node.
+/// </summary>
+/// <param name="node">The reference directive trivia syntax node to visit.</param>
+/// <returns>The visited reference directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitReferenceDirectiveTrivia(ReferenceDirectiveTriviaSyntax node)
+{
+    if (_visitReferenceDirectiveTrivia != null)
+    {
+        var visit = _visitReferenceDirectiveTrivia.Invoke(this, node);
+        return (visit is ReferenceDirectiveTriviaSyntax newNode) ? base.VisitReferenceDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitReferenceDirectiveTrivia(node);
+}
 
-        /// <summary>
-        /// Visits the specified load directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The load directive trivia syntax node to visit.</param>
-        /// <returns>The visited load directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitLoadDirectiveTrivia(LoadDirectiveTriviaSyntax node)
-        {
-            if (_visitLoadDirectiveTrivia != null)
-                node = _visitLoadDirectiveTrivia.Invoke(this, node);
-            return base.VisitLoadDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified load directive trivia syntax node.
+/// </summary>
+/// <param name="node">The load directive trivia syntax node to visit.</param>
+/// <returns>The visited load directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitLoadDirectiveTrivia(LoadDirectiveTriviaSyntax node)
+{
+    if (_visitLoadDirectiveTrivia != null)
+    {
+        var visit = _visitLoadDirectiveTrivia.Invoke(this, node);
+        return (visit is LoadDirectiveTriviaSyntax newNode) ? base.VisitLoadDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitLoadDirectiveTrivia(node);
+}
 
-        /// <summary>
-        /// Visits the specified shebang directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The shebang directive trivia syntax node to visit.</param>
-        /// <returns>The visited shebang directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitShebangDirectiveTrivia(ShebangDirectiveTriviaSyntax node)
-        {
-            if (_visitShebangDirectiveTrivia != null)
-                node = _visitShebangDirectiveTrivia.Invoke(this, node);
-            return base.VisitShebangDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified shebang directive trivia syntax node.
+/// </summary>
+/// <param name="node">The shebang directive trivia syntax node to visit.</param>
+/// <returns>The visited shebang directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitShebangDirectiveTrivia(ShebangDirectiveTriviaSyntax node)
+{
+    if (_visitShebangDirectiveTrivia != null)
+    {
+        var visit = _visitShebangDirectiveTrivia.Invoke(this, node);
+        return (visit is ShebangDirectiveTriviaSyntax newNode) ? base.VisitShebangDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitShebangDirectiveTrivia(node);
+}
 
-        /// <summary>
-        /// Visits the specified nullable directive trivia syntax node.
-        /// </summary>
-        /// <param name="node">The nullable directive trivia syntax node to visit.</param>
-        /// <returns>The visited nullable directive trivia syntax node, possibly modified.</returns>
-        public override SyntaxNode VisitNullableDirectiveTrivia(NullableDirectiveTriviaSyntax node)
-        {
-            if (_visitNullableDirectiveTrivia != null)
-                node = _visitNullableDirectiveTrivia.Invoke(this, node);
-            return base.VisitNullableDirectiveTrivia(node);
-        }
+/// <summary>
+/// Visits the specified nullable directive trivia syntax node.
+/// </summary>
+/// <param name="node">The nullable directive trivia syntax node to visit.</param>
+/// <returns>The visited nullable directive trivia syntax node, possibly modified.</returns>
+public override SyntaxNode VisitNullableDirectiveTrivia(NullableDirectiveTriviaSyntax node)
+{
+    if (_visitNullableDirectiveTrivia != null)
+    {
+        var visit = _visitNullableDirectiveTrivia.Invoke(this, node);
+        return (visit is NullableDirectiveTriviaSyntax newNode) ? base.VisitNullableDirectiveTrivia(newNode) : visit;
+    }
+    return base.VisitNullableDirectiveTrivia(node);
+}
+
     }
 }
