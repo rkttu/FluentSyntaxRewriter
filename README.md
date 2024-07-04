@@ -1,5 +1,7 @@
 # FluentSyntaxRewriter
 
+**Important Note: This library is provided for reference only and is no longer being developed.**
+
 [![NuGet Version](https://img.shields.io/nuget/v/FluentSyntaxRewriter)](https://www.nuget.org/packages/FluentSyntaxRewriter/) ![Build Status](https://github.com/rkttu/FluentSyntaxRewriter/actions/workflows/dotnet.yml/badge.svg) [![GitHub Sponsors](https://img.shields.io/github/sponsors/rkttu)](https://github.com/sponsors/rkttu/)
 
 A library to help you use the Roslyn APIs for analysing and rewriting the .NET programming language in a fluent way.
